@@ -2,27 +2,29 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1626" />
   <title>Water Puzzle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="ambient" aria-hidden="true"></div>
+
   <div id="app">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-drop">💧</span>
-        <span class="brand-name">Water&nbsp;Puzzle</span>
+    <header class="hud">
+      <button class="icon-btn" id="soundBtn" title="サウンド" aria-label="サウンド">🔊</button>
+
+      <div class="level-pill">
+        <span class="level-cap">LEVEL</span>
+        <span class="level-num" id="levelValue">1</span>
       </div>
-      <div class="stats">
-        <div class="stat">
-          <span class="stat-label">レベル</span>
-          <span class="stat-value" id="levelValue">1</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">手数</span>
-          <span class="stat-value" id="movesValue">0</span>
-        </div>
+
+      <div class="moves-pill">
+        <span class="moves-ic">🖐️</span>
+        <span class="moves-num" id="movesValue">0</span>
       </div>
     </header>
 
@@ -32,28 +34,38 @@
       </div>
     </main>
 
-    <footer class="controls">
-      <button class="btn" id="undoBtn" title="一手戻す">
-        <span class="btn-icon">↩︎</span><span class="btn-text">戻す</span>
+    <footer class="actions">
+      <button class="act" id="undoBtn" title="一手戻す">
+        <span class="act-ic">↩</span><span class="act-lb">戻す</span>
       </button>
-      <button class="btn" id="restartBtn" title="やり直す">
-        <span class="btn-icon">⟳</span><span class="btn-text">リセット</span>
+      <button class="act" id="hintBtn" title="ヒント">
+        <span class="act-ic">💡</span><span class="act-lb">ヒント</span>
       </button>
-      <button class="btn btn-accent" id="addTubeBtn" title="試験管を追加（1回だけ）">
-        <span class="btn-icon">＋</span><span class="btn-text">追加</span>
+      <button class="act act-star" id="addTubeBtn" title="試験管を追加">
+        <span class="act-ic">＋</span><span class="act-lb">追加</span>
+        <span class="act-badge" id="addBadge">1</span>
       </button>
-      <button class="btn" id="newBtn" title="次のレベルへ">
-        <span class="btn-icon">➜</span><span class="btn-text">次へ</span>
+      <button class="act" id="restartBtn" title="やり直す">
+        <span class="act-ic">⟳</span><span class="act-lb">リセット</span>
       </button>
     </footer>
   </div>
 
   <div id="winOverlay" class="overlay hidden">
-    <div class="overlay-card">
-      <div class="overlay-emoji">🎉</div>
-      <h2 class="overlay-title">クリア！</h2>
-      <p class="overlay-sub" id="winSub">レベル 1 を <b>0</b> 手でクリアしました。</p>
-      <button class="btn btn-accent btn-lg" id="nextLevelBtn">次のレベルへ ➜</button>
+    <canvas id="confetti"></canvas>
+    <div class="win-card">
+      <div class="win-ribbon">CLEAR</div>
+      <div class="stars" id="stars">
+        <span class="star" data-i="0">★</span>
+        <span class="star" data-i="1">★</span>
+        <span class="star" data-i="2">★</span>
+      </div>
+      <h2 class="win-title">ステージクリア！</h2>
+      <p class="win-sub" id="winSub"></p>
+      <div class="win-actions">
+        <button class="btn ghost" id="replayBtn">やり直す</button>
+        <button class="btn primary" id="nextLevelBtn">つぎへ ➜</button>
+      </div>
     </div>
   </div>
 
