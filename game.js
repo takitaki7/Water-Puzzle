@@ -1,5 +1,5 @@
 /* ============================================================
-   Water Puzzle  —  a premium "Magic Sort!"-style sorting game
+   PotionPop  —  a premium "Magic Sort!"-style potion-sorting game
    Bottle-shaped vessels with cork caps, tilt-to-pour physics,
    rippling liquid, a rewarded-ad power-up economy, coins,
    star ratings and confetti. Pure vanilla JS. No dependencies.
@@ -195,7 +195,7 @@ function newDyn(i) {
   const bubbles = [];
   const n = 3 + (i % 3);
   for (let k = 0; k < n; k++) bubbles.push({ x: Math.random(), r: 0.5 + Math.random(), sp: 0.15 + Math.random() * 0.25, ph: Math.random() });
-  return { lift: 0, wave: 0, phase: Math.random() * 6.28, completeAt: -1, completeColor: 0, sparks: [], bubbles };
+  return { lift: 0, wave: 0, phase: Math.random() * 6.28, completeAt: -1, completeColor: 0, sparks: [], pops: [], bubbles };
 }
 const COMPLETE_MS = 850;
 
@@ -672,6 +672,14 @@ function markComplete(idx, now) {
     sp: 0.75 + Math.random() * 1.0, r: 3.2 + Math.random() * 4.5,
     spin: Math.random() * 6.28, col: cols[k % cols.length],
   });
+  // "PotionPop" bubble burst: little bubbles that swell and pop.
+  d.pops = [];
+  const m = 9;
+  for (let k = 0; k < m; k++) d.pops.push({
+    a: Math.random() * Math.PI * 2, dist: 0.15 + Math.random() * 0.85,
+    r: 4 + Math.random() * 6, delay: Math.random() * 0.4,
+    col: k % 2 ? "#ffffff" : pal.l,
+  });
 }
 
 function drawSparkle(x, y, r, rot, color) {
@@ -737,6 +745,26 @@ function drawCompleteFX(now) {
       drawSparkle(px, py, sz * 1.7, s.spin + t * 6, rgba(pal.l, al * 0.9)); // colored halo
       ctx.shadowBlur = 0;
       drawSparkle(px, py, sz, s.spin + t * 6, rgba("#ffffff", al));           // white core
+    }
+
+    // popping bubbles: each swells, then bursts into a quick ring
+    for (const b of d.pops || []) {
+      const lt = (t - b.delay) / (1 - b.delay);
+      if (lt <= 0 || lt >= 1) continue;
+      const px = cx + Math.cos(b.a) * b.dist * w * 0.6;
+      const py = cyc + Math.sin(b.a) * b.dist * w * 0.55 - lt * w * 0.25; // drift up
+      if (lt < 0.7) {
+        // swelling bubble
+        const rr = b.r * (0.5 + lt);
+        ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(b.col, 0.18); ctx.fill();
+        ctx.strokeStyle = rgba(b.col, 0.8 * (1 - lt)); ctx.lineWidth = 2; ctx.stroke();
+      } else {
+        // burst ring
+        const pl = (lt - 0.7) / 0.3;
+        ctx.beginPath(); ctx.arc(px, py, b.r * (1.2 + pl * 1.6), 0, Math.PI * 2);
+        ctx.strokeStyle = rgba(b.col, (1 - pl) * 0.9); ctx.lineWidth = 2.5 * (1 - pl) + 0.5; ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -1094,13 +1122,14 @@ window.addEventListener("resize", resize);
 window.addEventListener("load", resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
 
-window.WaterPuzzle = {
+window.PotionPop = {
   state, layout: () => LAYOUT, click: onTubeClick, pouring: () => !!pour,
   legalMoves, applyPour, isSolved, boardKey, solvePath,
   useUndo, useHint, useAdd, openAd, grantAd, openStore, buyPowerup, openShop, buyInShop,
   pourP: () => pourProgress(), freeze: (v) => { FREEZE = v; },
   fx: (i, back) => { markComplete(i, performance.now() - (back || 0)); },
 };
+window.WaterPuzzle = window.PotionPop; // legacy alias
 
 loadPersisted();
 resize();

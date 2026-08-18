@@ -1,7 +1,7 @@
 {
-  "name": "Water Puzzle",
-  "short_name": "Water Puzzle",
-  "description": "Pour and sort the colored liquids — a relaxing free color-sorting puzzle.",
+  "name": "PotionPop",
+  "short_name": "PotionPop",
+  "description": "Pour, sort and pop the colorful potions — a relaxing free color-sorting puzzle.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
