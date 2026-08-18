@@ -565,6 +565,11 @@ function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2)
    Main loop — source tube drawn last so its lip overlaps.
    ============================================================ */
 function frame(now) {
+  // Self-heal: if the board's measured size ever differs from what the
+  // canvas was sized for (first paint before layout settled, web-font
+  // reflow, window/orientation change, no resize event fired), re-sync.
+  if (boardEl.clientWidth !== VIEW.w || boardEl.clientHeight !== VIEW.h) resize();
+  if (VIEW.w < 4 || VIEW.h < 4) { requestAnimationFrame(frame); return; }
   syncDyn();
   computeLayout();
   for (let i = 0; i < dyn.length; i++) {
@@ -832,6 +837,10 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "n" || e.key === "N") newLevel(true);
 });
 window.addEventListener("resize", resize);
+window.addEventListener("load", resize);
+// Re-sync the canvas whenever the board box changes size (covers font
+// reflow, mobile URL-bar show/hide, split-screen, etc.).
+if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
 
 // Persist progress on win.
 const _onWin = onWin;
