@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Water Puzzle</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-drop">💧</span>
+        <span class="brand-name">Water&nbsp;Puzzle</span>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">レベル</span>
+          <span class="stat-value" id="levelValue">1</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">手数</span>
+          <span class="stat-value" id="movesValue">0</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="board-wrap">
+      <div id="board" class="board" aria-label="試験管"></div>
+    </main>
+
+    <footer class="controls">
+      <button class="btn" id="undoBtn" title="一手戻す">
+        <span class="btn-icon">↩︎</span><span class="btn-text">戻す</span>
+      </button>
+      <button class="btn" id="restartBtn" title="やり直す">
+        <span class="btn-icon">⟳</span><span class="btn-text">リセット</span>
+      </button>
+      <button class="btn btn-accent" id="addTubeBtn" title="試験管を追加（1回だけ）">
+        <span class="btn-icon">＋</span><span class="btn-text">追加</span>
+      </button>
+      <button class="btn" id="newBtn" title="次のレベルへ">
+        <span class="btn-icon">➜</span><span class="btn-text">次へ</span>
+      </button>
+    </footer>
+  </div>
+
+  <div id="winOverlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-emoji">🎉</div>
+      <h2 class="overlay-title">クリア！</h2>
+      <p class="overlay-sub" id="winSub">レベル 1 を <b>0</b> 手でクリアしました。</p>
+      <button class="btn btn-accent btn-lg" id="nextLevelBtn">次のレベルへ ➜</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
