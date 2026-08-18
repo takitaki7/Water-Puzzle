@@ -67,6 +67,18 @@ vercel --prod # 本番環境へデプロイ
 
 初回は対話でプロジェクト設定を聞かれます。**すべてデフォルト（ビルドなし）** で進めれば OK です。
 
+### カスタムドメイン & 本番公開
+
+1. Vercel の **Project → Settings → Domains** で独自ドメインを購入 / 追加。
+2. **Settings → Git** の **Production Branch** を `claude/water-puzzle-game-8a215u`（このリポジトリの既定ブランチ）にしておくと、push で本番が自動更新されます。
+3. 最新コミットが本番に出ていない場合は **Deployments** で最新デプロイを開き `⋯ → Promote to Production`。
+4. 反映後はブラウザを **ハードリロード**（Ctrl/Cmd+F5）で確認。
+
+### PWA / 共有
+
+- `manifest.webmanifest` とアイコン（`icon-192/512.png`, `apple-touch-icon.png`, `favicon.svg`）を同梱。スマホの **「ホーム画面に追加」** でアプリのように起動できます（全画面 standalone）。
+- `og-image.png` と OG/Twitter メタを設定済みで、リンク共有時にカード表示されます。ドメイン確定後、より確実なプレビューにするなら `index.html` の `og:image` / `twitter:image` を **絶対URL** に置き換えてください。
+
 ## ファイル構成
 
 | ファイル | 役割 |
