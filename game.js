@@ -880,6 +880,31 @@ function buyPowerup() {
   grantPowerup(kind); // adds one and spends it right away
 }
 
+/* ---------- Shop (buy power-ups into your inventory anytime) ---------- */
+const shopModal = document.getElementById("shopModal");
+function openShop() { refreshShop(); shopModal.classList.remove("hidden"); }
+function closeShop() { shopModal.classList.add("hidden"); }
+function refreshShop() {
+  document.getElementById("shopCoins").textContent = String(state.coins);
+  const map = [["undo", "ownUndo", "priceUndo", "buyUndo"], ["hint", "ownHint", "priceHint", "buyHint"], ["add", "ownAdd", "priceAdd", "buyAdd"]];
+  for (const [k, ownId, priceId, buyId] of map) {
+    document.getElementById(ownId).textContent = String(state.pw[k]);
+    document.getElementById(priceId).textContent = String(PRICE[k]);
+    document.getElementById(buyId).classList.toggle("disabled", state.coins < PRICE[k]);
+  }
+}
+function buyInShop(kind) {
+  const price = PRICE[kind];
+  if (state.coins < price) {
+    const btn = document.getElementById("buy" + kind[0].toUpperCase() + kind.slice(1));
+    btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
+    return;
+  }
+  state.coins -= price; saveCoins();
+  state.pw[kind] = (state.pw[kind] || 0) + 1; savePW();
+  updateHud(); refreshShop(); sfx("complete");
+}
+
 /* ============================================================
    Levels
    ============================================================ */
@@ -1036,6 +1061,12 @@ on("nextLevelBtn", "click", () => newLevel(true));
 on("adClaim", "click", () => { audioResume(); grantAd(); });
 on("adClose", "click", closeAd);
 
+on("coinPill", "click", () => { audioResume(); openShop(); });
+on("shopClose", "click", closeShop);
+on("buyUndo", "click", () => { audioResume(); buyInShop("undo"); });
+on("buyHint", "click", () => { audioResume(); buyInShop("hint"); });
+on("buyAdd", "click", () => { audioResume(); buyInShop("add"); });
+
 on("storeClose", "click", closeStore);
 on("storeWatch", "click", () => { audioResume(); const k = storeKind; closeStore(); if (k) openAd(k); });
 on("storeBuy", "click", () => { audioResume(); buyPowerup(); });
@@ -1066,7 +1097,7 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
 window.WaterPuzzle = {
   state, layout: () => LAYOUT, click: onTubeClick, pouring: () => !!pour,
   legalMoves, applyPour, isSolved, boardKey, solvePath,
-  useUndo, useHint, useAdd, openAd, grantAd, openStore, buyPowerup,
+  useUndo, useHint, useAdd, openAd, grantAd, openStore, buyPowerup, openShop, buyInShop,
   pourP: () => pourProgress(), freeze: (v) => { FREEZE = v; },
   fx: (i, back) => { markComplete(i, performance.now() - (back || 0)); },
 };

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -19,10 +19,11 @@
 
   <div id="app">
     <header class="hud">
-      <div class="coin-pill">
+      <button class="coin-pill" id="coinPill" aria-label="Shop">
         <span class="coin"><span class="coin-star">★</span></span>
         <span class="coin-val" id="coinValue">0</span>
-      </div>
+        <span class="coin-plus">＋</span>
+      </button>
 
       <div class="level-pill">Level <span id="levelValue">1</span></div>
 
@@ -78,6 +79,32 @@
     </div>
   </div>
 
+  <!-- Shop: buy power-ups with coins anytime -->
+  <div id="shopModal" class="modal hidden">
+    <div class="modal-card shop-card">
+      <button class="ad-x" id="shopClose" aria-label="Close">✕</button>
+      <h3 class="modal-title">Shop</h3>
+      <div class="store-balance">Balance <span class="coin xs"><span class="coin-star">★</span></span> <b id="shopCoins">0</b></div>
+      <div class="shop-list">
+        <div class="shop-item">
+          <span class="shop-ic undo">↩</span>
+          <span class="shop-info"><b>Undo</b><small>Owned: <span id="ownUndo">0</span></small></span>
+          <button class="shop-buy" id="buyUndo"><span class="coin xs"><span class="coin-star">★</span></span> <span id="priceUndo">60</span></button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-ic hint">💡</span>
+          <span class="shop-info"><b>Hint</b><small>Owned: <span id="ownHint">0</span></small></span>
+          <button class="shop-buy" id="buyHint"><span class="coin xs"><span class="coin-star">★</span></span> <span id="priceHint">90</span></button>
+        </div>
+        <div class="shop-item">
+          <span class="shop-ic add">🧪</span>
+          <span class="shop-info"><b>+ Bottle</b><small>Owned: <span id="ownAdd">0</span></small></span>
+          <button class="shop-buy" id="buyAdd"><span class="coin xs"><span class="coin-star">★</span></span> <span id="priceAdd">140</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Get more power-ups (watch ad OR spend coins) -->
   <div id="storeModal" class="modal hidden">
     <div class="modal-card store-card">
@@ -114,6 +141,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=7"></script>
+  <script src="game.js?v=8"></script>
 </body>
 </html>
