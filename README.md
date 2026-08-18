@@ -37,6 +37,26 @@ python3 -m http.server 8000
 # → ブラウザで http://localhost:8000 を開く
 ```
 
+## Vercel へのデプロイ
+
+ビルド不要の静的サイトなので、Vercel に **設定ゼロ** でそのまま公開できます（`vercel.json` はクリーン URL とキャッシュ最適化のための任意設定です）。
+
+### 方法 A: ダッシュボードから（おすすめ）
+
+1. [vercel.com/new](https://vercel.com/new) を開き、この GitHub リポジトリをインポート。
+2. Framework Preset は **Other**、Build Command と Output Directory は **空のまま**（＝リポジトリ直下をそのまま配信）。
+3. **Deploy** を押すと数秒で公開 URL が発行されます。以降は push するたびに自動デプロイされます。
+
+### 方法 B: Vercel CLI から
+
+```bash
+npm i -g vercel
+vercel        # プレビュー環境へデプロイ
+vercel --prod # 本番環境へデプロイ
+```
+
+初回は対話でプロジェクト設定を聞かれます。**すべてデフォルト（ビルドなし）** で進めれば OK です。
+
 ## ファイル構成
 
 | ファイル | 役割 |
