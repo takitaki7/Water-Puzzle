@@ -808,21 +808,28 @@ function sfx(kind) {
 }
 
 /* ============================================================
-   Wire up
+   Wire up — null-safe so a missing element (e.g. a stale cached
+   asset mismatch) can never crash the whole script and blank the
+   board. Each binding is independent.
    ============================================================ */
-document.getElementById("undoBtn").addEventListener("click", () => { audioResume(); undo(); });
-document.getElementById("restartBtn").addEventListener("click", restart);
-document.getElementById("addTubeBtn").addEventListener("click", addTube);
-document.getElementById("hintBtn").addEventListener("click", () => { audioResume(); hint(); });
-document.getElementById("replayBtn").addEventListener("click", () => { hideWin(); loadLevel(state.level); });
-document.getElementById("nextLevelBtn").addEventListener("click", () => newLevel(true));
+function on(id, evt, fn) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(evt, fn);
+}
+on("undoBtn", "click", () => { audioResume(); undo(); });
+on("restartBtn", "click", restart);
+on("addTubeBtn", "click", addTube);
+on("hintBtn", "click", () => { audioResume(); hint(); });
+on("replayBtn", "click", () => { hideWin(); loadLevel(state.level); });
+on("nextLevelBtn", "click", () => newLevel(true));
 
 const soundBtn = document.getElementById("soundBtn");
 function refreshSoundBtn() {
+  if (!soundBtn) return;
   soundBtn.textContent = soundOn ? "🔊" : "🔇";
   soundBtn.classList.toggle("muted", !soundOn);
 }
-soundBtn.addEventListener("click", () => {
+on("soundBtn", "click", () => {
   soundOn = !soundOn;
   try { localStorage.setItem("waterpuzzle.sound", soundOn ? "1" : "0"); } catch (_) {}
   refreshSoundBtn();
