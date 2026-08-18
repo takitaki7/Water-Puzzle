@@ -144,8 +144,8 @@ function topRun(t) {
 function canPour(tubes, from, to) {
   const a = tubes[from], b = tubes[to];
   if (!a.length || b.length >= CAPACITY || from === to) return false;
-  if (!b.length) return !(a.length === CAPACITY && topRun(a) === CAPACITY);
-  return topColor(a) === topColor(b);
+  if (!b.length) return true;                        // empty destination: always allowed
+  return topColor(a) === topColor(b);                // otherwise the top colors must match
 }
 function applyPour(tubes, from, to) {
   const a = tubes[from], b = tubes[to];
