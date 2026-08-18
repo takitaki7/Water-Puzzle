@@ -258,4 +258,30 @@ body {
 .ad-progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #ffd34e, #f5a623); transition: width .1s linear; }
 .ad-status { color: var(--text-dim); font-weight: 700; font-size: 14px; margin-bottom: 12px; min-height: 18px; }
 
+/* Get-more store modal */
+.store-card { padding: 26px 20px 20px; }
+.store-icon { font-size: 46px; line-height: 1; margin-bottom: 4px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.4)); }
+.store-opts { display: flex; flex-direction: column; gap: 12px; margin: 16px 0 14px; }
+.store-opt {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 16px;
+  border: 1px solid var(--stroke); cursor: pointer;
+  color: var(--text); text-align: left;
+  transition: transform .1s, filter .2s, opacity .2s;
+}
+.store-opt:active { transform: scale(0.97); }
+.store-opt.watch { background: linear-gradient(180deg, #6d3fc7, #4a2596); box-shadow: 0 8px 18px var(--shadow), inset 0 1px 0 rgba(255,255,255,.2); }
+.store-opt.buy { background: linear-gradient(180deg, #2ec5ff, #1183d6); box-shadow: 0 8px 18px rgba(26,165,230,.4), inset 0 1px 0 rgba(255,255,255,.3); }
+.store-opt.buy.disabled { filter: grayscale(0.7) brightness(0.8); opacity: 0.6; }
+.store-opt.shake { animation: shake .4s; }
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+.so-ic { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,0.18); font-size: 15px; flex: 0 0 auto; }
+.so-txt { display: flex; flex-direction: column; line-height: 1.15; }
+.so-txt b { font-family: "Baloo 2", sans-serif; font-size: 17px; }
+.so-txt small { font-size: 12px; color: rgba(255,255,255,.75); font-weight: 700; }
+.store-balance { font-weight: 800; color: var(--text-dim); font-size: 14px; }
+.store-balance b { color: var(--gold); }
+.coin.xs { width: 18px; height: 18px; vertical-align: middle; display: inline-grid; }
+.coin.xs .coin-star { font-size: 10px; }
+
 .hidden { display: none !important; }

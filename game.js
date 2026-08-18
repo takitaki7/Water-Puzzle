@@ -751,11 +751,14 @@ function pushHistory() {
   if (state.history.length > 400) state.history.shift();
 }
 
+// Coin prices for buying a power-up when you're out.
+const PRICE = { undo: 60, hint: 90, add: 140 };
+
 // Undo
 function useUndo() {
   if (state.won || pour) return;
   if (state.pw.undo > 0) { if (doUndo()) { state.pw.undo--; savePW(); updateHud(); } }
-  else if (state.history.length) openAd("undo");
+  else if (state.history.length) openStore("undo");
   else flashBtn("undoBtn");
 }
 function doUndo() {
@@ -769,7 +772,7 @@ function doUndo() {
 function useHint() {
   if (state.won || pour) return;
   if (state.pw.hint > 0) { if (doHint()) { state.pw.hint--; savePW(); updateHud(); } }
-  else openAd("hint");
+  else openStore("hint");
 }
 function doHint() {
   const path = solvePath(state.tubes, 300000);
@@ -784,7 +787,7 @@ function doHint() {
 function useAdd() {
   if (state.won || pour) return;
   if (state.pw.add > 0) { doAdd(); state.pw.add--; savePW(); updateHud(); }
-  else openAd("add");
+  else openStore("add");
 }
 function doAdd() {
   pushHistory();
@@ -834,11 +837,47 @@ function openAd(kind) {
 function closeAd() { clearInterval(adTimer); adModal.classList.add("hidden"); adKind = null; }
 function grantAd() {
   const kind = adKind; closeAd();
-  if (!kind) return;
+  if (kind) grantPowerup(kind);
+}
+// Give one power-up and immediately spend it (the "watch/buy → do it now" flow).
+function grantPowerup(kind) {
   state.pw[kind] = (state.pw[kind] || 0) + 1; savePW(); updateHud();
   if (kind === "undo") useUndo();
   else if (kind === "hint") useHint();
   else if (kind === "add") useAdd();
+}
+
+/* ---------- get-more store (watch ad OR spend coins) ---------- */
+const storeModal = document.getElementById("storeModal");
+const STORE_INFO = {
+  undo: { icon: "↩️", title: "Get more Undos" },
+  hint: { icon: "💡", title: "Get more Hints" },
+  add: { icon: "🧪", title: "Get more Bottles" },
+};
+let storeKind = null;
+function openStore(kind) {
+  storeKind = kind;
+  const info = STORE_INFO[kind], price = PRICE[kind];
+  document.getElementById("storeIcon").textContent = info.icon;
+  document.getElementById("storeTitle").textContent = info.title;
+  document.getElementById("storeBuyPrice").textContent = "Buy · " + price;
+  document.getElementById("storeCoins").textContent = String(state.coins);
+  const buyBtn = document.getElementById("storeBuy");
+  buyBtn.classList.toggle("disabled", state.coins < price);
+  storeModal.classList.remove("hidden");
+}
+function closeStore() { storeModal.classList.add("hidden"); storeKind = null; }
+function buyPowerup() {
+  const kind = storeKind; if (!kind) return;
+  const price = PRICE[kind];
+  if (state.coins < price) {
+    const buyBtn = document.getElementById("storeBuy");
+    buyBtn.classList.remove("shake"); void buyBtn.offsetWidth; buyBtn.classList.add("shake");
+    return;
+  }
+  state.coins -= price; saveCoins();
+  closeStore();
+  grantPowerup(kind); // adds one and spends it right away
 }
 
 /* ============================================================
@@ -869,7 +908,7 @@ function setBadge(id, n) {
   const el = document.getElementById(id);
   if (!el) return;
   if (n > 0) { el.textContent = String(n); el.classList.remove("ad"); }
-  else { el.textContent = ""; el.classList.add("ad"); }
+  else { el.textContent = "+"; el.classList.remove("ad"); } // 0 → tap opens the get-more store
 }
 
 /* ---------- Win + stars + coins + confetti ---------- */
@@ -997,6 +1036,10 @@ on("nextLevelBtn", "click", () => newLevel(true));
 on("adClaim", "click", () => { audioResume(); grantAd(); });
 on("adClose", "click", closeAd);
 
+on("storeClose", "click", closeStore);
+on("storeWatch", "click", () => { audioResume(); const k = storeKind; closeStore(); if (k) openAd(k); });
+on("storeBuy", "click", () => { audioResume(); buyPowerup(); });
+
 // Settings modal
 const settingsModal = document.getElementById("settingsModal");
 function refreshSoundRow() { const el = document.getElementById("soundState"); if (el) el.textContent = soundOn ? "On" : "Off"; }
@@ -1023,7 +1066,7 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
 window.WaterPuzzle = {
   state, layout: () => LAYOUT, click: onTubeClick, pouring: () => !!pour,
   legalMoves, applyPour, isSolved, boardKey, solvePath,
-  useUndo, useHint, useAdd, openAd, grantAd,
+  useUndo, useHint, useAdd, openAd, grantAd, openStore, buyPowerup,
   pourP: () => pourProgress(), freeze: (v) => { FREEZE = v; },
   fx: (i, back) => { markComplete(i, performance.now() - (back || 0)); },
 };
