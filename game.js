@@ -226,8 +226,9 @@ function computeLayout() {
   let wall = Math.max(2.5, tubeW * 0.05);
   let unitH = tubeW * 0.66;
 
-  // Bottle proportions (multiples of unitH).
-  const capF = 0.5, neckF = 0.45, shoulderF = 0.5, bottomF = 0.18;
+  // Bottle proportions (multiples of unitH). Open-mouth bottle: a small
+  // rim lip (capF), a slim neck, a rounded shoulder, then the body.
+  const capF = 0.16, neckF = 0.5, shoulderF = 0.5, bottomF = 0.18;
   let liftPx = unitH * 0.32;
 
   const metrics = () => {
@@ -407,60 +408,7 @@ function drawTube(idx, now) {
     }
   }
 
-  // cork on filled, idle bottles (with a "slam" bounce when just completed)
-  const uncorked = state.selected === idx || (pour && (pour.from === idx || pour.to === idx));
-  if (bands.length && !uncorked) {
-    let corkDrop = 0;
-    if (dyn[idx].completeAt >= 0) {
-      const t = clamp((now - dyn[idx].completeAt) / 320);
-      corkDrop = -(1 - easeOutBounce(t)) * m.capH * 2.2;
-    }
-    drawCork(g.cx, g.neckTop + corkDrop, m);
-  }
-
   ctx.restore();
-}
-function easeOutBounce(t) {
-  const n = 7.5625, d = 2.75;
-  if (t < 1 / d) return n * t * t;
-  if (t < 2 / d) { t -= 1.5 / d; return n * t * t + 0.75; }
-  if (t < 2.5 / d) { t -= 2.25 / d; return n * t * t + 0.9375; }
-  t -= 2.625 / d; return n * t * t + 0.984375;
-}
-
-function drawCork(cx, neckTop, m) {
-  const cw = m.neckW + m.neckW * 0.30;
-  const ch = m.capH * 1.15;
-  const x = cx - cw / 2, y = neckTop - ch + 3, r = cw * 0.30;
-  // rounded-top cap
-  ctx.beginPath();
-  ctx.moveTo(x, y + ch);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.lineTo(x + cw - r, y);
-  ctx.quadraticCurveTo(x + cw, y, x + cw, y + r);
-  ctx.lineTo(x + cw, y + ch);
-  ctx.closePath();
-  const cg = ctx.createLinearGradient(x, y, x + cw, y);
-  cg.addColorStop(0, "#c8862f");
-  cg.addColorStop(0.32, "#ffe6a0");
-  cg.addColorStop(0.5, "#ffd275");
-  cg.addColorStop(0.7, "#f2b64a");
-  cg.addColorStop(1, "#a96a1e");
-  ctx.fillStyle = cg; ctx.fill();
-  // vertical sheen
-  const vg = ctx.createLinearGradient(0, y, 0, y + ch);
-  vg.addColorStop(0, "rgba(255,255,255,0.45)");
-  vg.addColorStop(0.35, "rgba(255,255,255,0.05)");
-  vg.addColorStop(1, "rgba(0,0,0,0.15)");
-  ctx.fillStyle = vg; ctx.fill();
-  // dark band near the neck
-  ctx.fillStyle = "rgba(110,60,5,0.40)";
-  ctx.fillRect(x, y + ch * 0.62, cw, ch * 0.14);
-  // specular dot
-  ctx.beginPath();
-  ctx.ellipse(x + cw * 0.30, y + ch * 0.26, cw * 0.14, ch * 0.16, -0.3, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.fill();
 }
 
 function drawGlassFront(idx, x, y, w, m, g, now) {
