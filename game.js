@@ -1,13 +1,12 @@
 /* ============================================================
    Water Puzzle  —  a premium "Magic Sort!"-style sorting game
-   Canvas liquid with tilt-to-pour physics, rippling surfaces,
-   rising bubbles, gooey pour streams, splash, hints, a star
-   rating and confetti. Pure vanilla JS. No dependencies.
+   Bottle-shaped vessels with cork caps, tilt-to-pour physics,
+   rippling liquid, a rewarded-ad power-up economy, coins,
+   star ratings and confetti. Pure vanilla JS. No dependencies.
    ============================================================ */
 
 const CAPACITY = 4;
 
-// Each color carries a light/base/dark triad for cylinder shading.
 const PALETTE = [
   null,
   { l: "#ff8f8f", b: "#f2504b", d: "#a81f1f" }, // red
@@ -30,16 +29,19 @@ function levelConfig(level) {
   return { colors, emptyTubes: 2 };
 }
 
+const PW_DEFAULT = { undo: 5, hint: 3, add: 3 };
+
 const state = {
   level: 1,
   moves: 0,
   optimal: null,
+  coins: 0,
+  pw: { ...PW_DEFAULT },
   tubes: [],
   history: [],
   selected: null,
-  addUsed: false,
   won: false,
-  hint: null, // {from,to,until}
+  hint: null,
 };
 
 /* ============================================================
@@ -55,7 +57,7 @@ function generateLevel(level) {
     for (let c = 0; c < colors; c++) tubes.push(pool.slice(c * CAPACITY, c * CAPACITY + CAPACITY));
     for (let e = 0; e < emptyTubes; e++) tubes.push([]);
     if (isSolved(tubes)) continue;
-    if (!isSolvable(tubes)) continue;                       // fast DFS acceptance
+    if (!isSolvable(tubes)) continue;
     return tubes;
   }
   const tubes = [];
@@ -64,7 +66,6 @@ function generateLevel(level) {
   return tubes;
 }
 
-// Fast depth-first solvability check (bounded).
 function isSolvable(start) {
   const seen = new Set();
   const stack = [start.map((t) => t.slice())];
@@ -100,13 +101,13 @@ function legalMoves(tubes) {
   return res;
 }
 
-// Breadth-first shortest solution. Returns the move list, or null.
+// Breadth-first shortest solution.
 function solvePath(start, cap = 300000) {
   const startKey = boardKey(start);
   if (isSolved(start)) return [];
   const seen = new Set([startKey]);
   const queue = [start.map((t) => t.slice())];
-  const parent = new Map(); // key -> {pkey, move}
+  const parent = new Map();
   parent.set(startKey, null);
   let head = 0, expanded = 0;
   while (head < queue.length) {
@@ -173,15 +174,16 @@ const boardEl = document.getElementById("board");
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const levelValueEl = document.getElementById("levelValue");
-const movesValueEl = document.getElementById("movesValue");
+const coinValueEl = document.getElementById("coinValue");
 
 let DPR = 1, VIEW = { w: 0, h: 0 }, LAYOUT = null;
 let dyn = [];
 
 const POUR_MS = 780;
-const MAX_TILT = 0.92; // radians
+const MAX_TILT = 0.92;
 
-let pour = null; // { from,to,color,amount,fromPre,toPre,start,done }
+let pour = null;
+let FREEZE = null;
 
 function syncDyn() {
   if (dyn.length === state.tubes.length) return;
@@ -209,35 +211,43 @@ function resize() {
 
 function computeLayout() {
   const n = state.tubes.length;
-  const padX = 10;
-  const gapX = Math.max(14, Math.min(28, VIEW.w * 0.05));
-  const gapY = 34;
+  const padX = 8;
+  const gapX = Math.max(12, Math.min(24, VIEW.w * 0.045));
+  const gapY = 26;
 
   const maxPerRow = VIEW.w < 520 ? 5 : 7;
   const rows = Math.max(1, Math.ceil(n / maxPerRow));
   const perRow = Math.ceil(n / rows);
 
   let tubeW = (VIEW.w - padX * 2 - gapX * (perRow - 1)) / perRow;
-  tubeW = Math.max(38, Math.min(70, tubeW));
+  tubeW = Math.max(36, Math.min(72, tubeW));
 
   let wall = Math.max(2.5, tubeW * 0.05);
-  let unitH = tubeW * 0.80;
-  let bottomExtra = tubeW * 0.09;
-  let tubeH = unitH * CAPACITY + bottomExtra;
-  let liftPx = unitH * 0.34;
+  let unitH = tubeW * 0.66;
 
-  const topPad = liftPx + tubeH * 0.34 + 8;
-  const botPad = 10;
-  const budget = VIEW.h - topPad - botPad;
+  // Bottle proportions (multiples of unitH).
+  const capF = 0.5, neckF = 0.45, shoulderF = 0.5, bottomF = 0.18;
+  let liftPx = unitH * 0.32;
 
-  let usedH = rows * tubeH + (rows - 1) * gapY;
+  const metrics = () => {
+    const capH = unitH * capF, neckH = unitH * neckF, shoulderH = unitH * shoulderF, bottomPad = unitH * bottomF;
+    const bodyH = unitH * CAPACITY + bottomPad;
+    const tubeH = capH + neckH + shoulderH + bodyH;
+    return { capH, neckH, shoulderH, bottomPad, bodyH, tubeH, neckW: tubeW * 0.46 };
+  };
+  let m = metrics();
+
+  const topPad = liftPx + m.tubeH * 0.30 + 6;
+  const budget = VIEW.h - topPad - 8;
+  let usedH = rows * m.tubeH + (rows - 1) * gapY;
   if (usedH > budget && budget > 0) {
     const f = budget / usedH;
-    unitH *= f; bottomExtra *= f; tubeH *= f; liftPx *= f;
-    usedH = rows * tubeH + (rows - 1) * gapY;
+    unitH *= f; liftPx *= f; m = metrics();
+    usedH = rows * m.tubeH + (rows - 1) * gapY;
   }
+
   const startY = topPad + Math.max(0, (budget - usedH) / 2);
-  const rowH = tubeH + gapY;
+  const rowH = m.tubeH + gapY;
 
   const rects = [];
   for (let i = 0; i < n; i++) {
@@ -248,32 +258,39 @@ function computeLayout() {
     const col = i - row * perRow;
     const x = startX + col * (tubeW + gapX);
     const y = startY + row * rowH;
-    rects.push({ x, y, w: tubeW, h: tubeH, cx: x + tubeW / 2, cy: y + tubeH / 2 });
+    rects.push({ x, y, w: tubeW, h: m.tubeH, cx: x + tubeW / 2, cy: y + m.tubeH / 2 });
   }
-  LAYOUT = { tubeW, unitH, wall, bottomExtra, tubeH, rects, liftPx };
+  LAYOUT = { tubeW, unitH, wall, liftPx, m, rects };
 }
 
 /* ---------- color helpers ---------- */
 function rgb(hex) { const v = hex.replace("#", ""); return [parseInt(v.slice(0, 2), 16), parseInt(v.slice(2, 4), 16), parseInt(v.slice(4, 6), 16)]; }
 function rgba(hex, a) { const c = rgb(hex); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
 
-/* ---------- geometry paths ---------- */
-function tubePath(x, y, w, h, topR, botR) {
+/* ---------- bottle outline ---------- */
+function bottlePath(x, y, w, m) {
+  const cx = x + w / 2, nhw = m.neckW / 2;
+  const neckTop = y + m.capH;
+  const shoulderTop = neckTop + m.neckH;
+  const bodyTop = shoulderTop + m.shoulderH;
+  const bodyBot = bodyTop + m.bodyH;
+  const botR = w * 0.42;
   ctx.beginPath();
-  ctx.moveTo(x, y + topR);
-  ctx.quadraticCurveTo(x, y, x + topR, y);
-  ctx.lineTo(x + w - topR, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + topR);
-  ctx.lineTo(x + w, y + h - botR);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - botR, y + h);
-  ctx.lineTo(x + botR, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - botR);
+  ctx.moveTo(cx - nhw, neckTop);
+  ctx.lineTo(cx - nhw, shoulderTop);
+  ctx.quadraticCurveTo(x, shoulderTop, x, bodyTop);
+  ctx.lineTo(x, bodyBot - botR);
+  ctx.quadraticCurveTo(x, bodyBot, x + botR, bodyBot);
+  ctx.lineTo(x + w - botR, bodyBot);
+  ctx.quadraticCurveTo(x + w, bodyBot, x + w, bodyBot - botR);
+  ctx.lineTo(x + w, bodyTop);
+  ctx.quadraticCurveTo(x + w, shoulderTop, cx + nhw, shoulderTop);
+  ctx.lineTo(cx + nhw, neckTop);
   ctx.closePath();
+  return { cx, neckTop, shoulderTop, bodyTop, bodyBot, inBot: bodyBot - m.wall };
 }
 
 /* ---------- per-tube transform ---------- */
-// Returns {offX,offY,angle,scale,pivotX,pivotY}. Source tube tilts & lifts
-// toward its target during a pour; others just lift/pulse.
 function tubeXf(idx, now) {
   const L = LAYOUT, r = L.rects[idx], d = dyn[idx];
   let scale = 1;
@@ -282,17 +299,15 @@ function tubeXf(idx, now) {
     if (t < 1) scale = 1 + Math.sin(t * Math.PI) * 0.07; else d.completeAt = -1;
   }
   if (pour && pour.from === idx) {
-    const p = pourProgress();
-    const ta = tiltAmt(p);
+    const p = pourProgress(), ta = tiltAmt(p);
     const to = L.rects[pour.to];
     const dir = to.cx >= r.cx ? 1 : -1;
-    const pourCx = to.cx - dir * (to.w * 0.60);
-    const pourCy = to.y - r.h * 0.02 + r.h * 0.5;
+    const pourCx = to.cx - dir * (to.w * 0.58);
+    const pourCy = to.y - r.h * 0.04 + r.h * 0.5;
     return {
       offX: (pourCx - r.cx) * ta,
       offY: (pourCy - r.cy) * ta - d.lift * L.liftPx * (1 - ta),
-      angle: dir * MAX_TILT * ta,
-      scale, pivotX: r.cx, pivotY: r.cy, dir,
+      angle: dir * MAX_TILT * ta, scale, pivotX: r.cx, pivotY: r.cy, dir,
     };
   }
   return { offX: 0, offY: -d.lift * L.liftPx, angle: 0, scale, pivotX: r.cx, pivotY: r.cy, dir: 1 };
@@ -302,19 +317,15 @@ function tiltAmt(p) {
   if (p > 0.82) return easeOut(Math.max(0, (1 - p) / 0.18));
   return 1;
 }
-// Apply the same transform to a local point (for lip position).
 function xfPoint(px, py, xf) {
   const dx = px - xf.pivotX, dy = py - xf.pivotY;
   const c = Math.cos(xf.angle), s = Math.sin(xf.angle);
-  return {
-    x: xf.pivotX + (dx * c - dy * s) * xf.scale + xf.offX,
-    y: xf.pivotY + (dx * s + dy * c) * xf.scale + xf.offY,
-  };
+  return { x: xf.pivotX + (dx * c - dy * s) * xf.scale + xf.offX, y: xf.pivotY + (dx * s + dy * c) * xf.scale + xf.offY };
 }
 
-/* ---------- draw one tube ---------- */
+/* ---------- draw one bottle ---------- */
 function drawTube(idx, now) {
-  const L = LAYOUT, r = L.rects[idx];
+  const L = LAYOUT, r = L.rects[idx], m = { ...L.m, wall: L.wall };
   const xf = tubeXf(idx, now);
 
   ctx.save();
@@ -324,83 +335,106 @@ function drawTube(idx, now) {
   ctx.scale(xf.scale, xf.scale);
   ctx.translate(-xf.pivotX, -xf.pivotY);
 
-  const x = r.x, y = r.y, w = r.w, h = r.h;
-  const topR = w * 0.16, botR = w * 0.5, wall = L.wall;
-  const inX = x + wall, inW = w - wall * 2;
-  const inTop = y, inBot = y + h - wall, inBotR = inW * 0.5;
+  const x = r.x, y = r.y, w = r.w;
 
-  // drop shadow
+  // shadow
   ctx.save();
   ctx.filter = "blur(6px)";
-  ctx.fillStyle = "rgba(0,0,0,0.32)";
-  tubePath(x + 2, y + 9, w, h, topR, botR);
-  ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  const gp = bottlePath(x + 2, y + 9, w, m); ctx.fill();
   ctx.restore();
 
   // glass back
-  tubePath(x, y, w, h, topR, botR);
+  const g = bottlePath(x, y, w, m);
   const gb = ctx.createLinearGradient(x, y, x + w, y);
-  gb.addColorStop(0, "rgba(255,255,255,0.12)");
-  gb.addColorStop(0.5, "rgba(255,255,255,0.03)");
-  gb.addColorStop(1, "rgba(255,255,255,0.09)");
-  ctx.fillStyle = gb;
-  ctx.fill();
+  gb.addColorStop(0, "rgba(255,255,255,0.13)");
+  gb.addColorStop(0.5, "rgba(255,255,255,0.04)");
+  gb.addColorStop(1, "rgba(255,255,255,0.10)");
+  ctx.fillStyle = gb; ctx.fill();
 
-  // liquid
+  // liquid, clipped to bottle interior
   const bands = displayBands(idx);
   if (bands.length) {
     ctx.save();
-    tubePath(inX, inTop, inW, inBot - inTop, Math.max(2, topR - wall * 0.5), inBotR);
+    bottlePath(x, y, w, m);
     ctx.clip();
-    drawLiquid(idx, bands, inX, inW, inBot, L.unitH, now, dyn[idx]);
+    drawLiquid(idx, bands, x + m.wall, w - m.wall * 2, g.inBot, L.unitH, now, dyn[idx]);
     ctx.restore();
   }
 
-  drawGlassFront(idx, x, y, w, h, topR, botR, wall, inW, now);
+  drawGlassFront(idx, x, y, w, m, g, now);
+
+  // cork on filled, idle bottles
+  const uncorked = state.selected === idx || (pour && (pour.from === idx || pour.to === idx));
+  if (bands.length && !uncorked) drawCork(g.cx, g.neckTop, m);
+
   ctx.restore();
 }
 
-function drawGlassFront(idx, x, y, w, h, topR, botR, wall, inW, now) {
-  // rim ellipse
+function drawCork(cx, neckTop, m) {
+  const cw = m.neckW + m.neckW * 0.24;
+  const ch = m.capH * 1.05;
+  const x = cx - cw / 2, y = neckTop - ch + 2, r = cw * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.lineTo(x + cw - r, y);
+  ctx.quadraticCurveTo(x + cw, y, x + cw, y + r);
+  ctx.lineTo(x + cw, y + ch);
+  ctx.lineTo(x, y + ch);
+  ctx.closePath();
+  const cg = ctx.createLinearGradient(x, y, x + cw, y);
+  cg.addColorStop(0, "#e8a94a");
+  cg.addColorStop(0.5, "#ffd98a");
+  cg.addColorStop(1, "#c07d2c");
+  ctx.fillStyle = cg; ctx.fill();
+  // band
+  ctx.fillStyle = "rgba(120,70,10,0.35)";
+  ctx.fillRect(x, y + ch * 0.55, cw, ch * 0.16);
+  // top gloss
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.fillRect(x + cw * 0.16, y + ch * 0.14, cw * 0.24, ch * 0.28);
+}
+
+function drawGlassFront(idx, x, y, w, m, g, now) {
+  // rim at neck opening
   ctx.save();
   ctx.beginPath();
-  ctx.ellipse(x + w / 2, y + wall * 0.6, inW / 2, wall * 1.05, 0, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(255,255,255,0.34)";
-  ctx.lineWidth = Math.max(1, wall * 0.5);
+  ctx.ellipse(g.cx, g.neckTop, m.neckW / 2, m.wall * 1.0, 0, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(255,255,255,0.32)";
+  ctx.lineWidth = Math.max(1, m.wall * 0.5);
   ctx.stroke();
   ctx.restore();
 
   // gloss streaks
   ctx.save();
-  tubePath(x, y, w, h, topR, botR);
-  ctx.clip();
-  let g = ctx.createLinearGradient(x + w * 0.12, 0, x + w * 0.42, 0);
-  g.addColorStop(0, "rgba(255,255,255,0.42)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(x + w * 0.1, y + h * 0.04, w * 0.24, h * 0.92);
-  g = ctx.createLinearGradient(x + w * 0.78, 0, x + w * 0.95, 0);
-  g.addColorStop(0, "rgba(255,255,255,0)");
-  g.addColorStop(1, "rgba(255,255,255,0.16)");
-  ctx.fillStyle = g;
-  ctx.fillRect(x + w * 0.7, y + h * 0.04, w * 0.25, h * 0.92);
+  bottlePath(x, y, w, m); ctx.clip();
+  let gg = ctx.createLinearGradient(x + w * 0.12, 0, x + w * 0.4, 0);
+  gg.addColorStop(0, "rgba(255,255,255,0.40)");
+  gg.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = gg;
+  ctx.fillRect(x + w * 0.1, g.bodyTop, w * 0.22, g.bodyBot - g.bodyTop);
+  gg = ctx.createLinearGradient(x + w * 0.78, 0, x + w * 0.94, 0);
+  gg.addColorStop(0, "rgba(255,255,255,0)");
+  gg.addColorStop(1, "rgba(255,255,255,0.14)");
+  ctx.fillStyle = gg;
+  ctx.fillRect(x + w * 0.72, g.bodyTop, w * 0.22, g.bodyBot - g.bodyTop);
   ctx.restore();
 
-  // outline + selection / hint rings
+  // outline / selection / hint
   const selected = state.selected === idx;
   const hinted = state.hint && (state.hint.from === idx || state.hint.to === idx) && now < state.hint.until;
-  tubePath(x, y, w, h, topR, botR);
-  if (selected) { ctx.strokeStyle = "#5fe6ff"; ctx.lineWidth = 3; ctx.shadowColor = "rgba(95,230,255,0.85)"; ctx.shadowBlur = 16; }
+  bottlePath(x, y, w, m);
+  if (selected) { ctx.strokeStyle = "#7de3ff"; ctx.lineWidth = 3; ctx.shadowColor = "rgba(125,227,255,0.85)"; ctx.shadowBlur = 16; }
   else if (hinted) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 140);
     ctx.strokeStyle = state.hint.from === idx ? "#ffd34e" : "#8affc0";
     ctx.lineWidth = 3; ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10 + pulse * 14;
-  } else { ctx.strokeStyle = "rgba(255,255,255,0.34)"; ctx.lineWidth = 1.6; }
+  } else { ctx.strokeStyle = "rgba(255,255,255,0.30)"; ctx.lineWidth = 1.6; }
   ctx.stroke();
   ctx.shadowBlur = 0;
 }
 
-// bands to draw, accounting for an active pour
 function displayBands(idx) {
   if (pour && pour.from === idx) {
     const p = pourProgress();
@@ -427,7 +461,6 @@ function drawLiquid(idx, bands, inX, inW, inBot, unitH, now, d) {
   let total = 0; for (const b of bands) total += b.units;
   const surfaceY = inBot - total * unitH;
 
-  // bands (bottom-first)
   let yb = inBot;
   for (let i = 0; i < bands.length; i++) {
     const band = bands[i], yt = yb - band.units * unitH, pal = PALETTE[band.color];
@@ -439,7 +472,6 @@ function drawLiquid(idx, bands, inX, inW, inBot, unitH, now, d) {
     yb = yt;
   }
 
-  // rising bubbles inside the liquid
   const topBand = bands[bands.length - 1], pal = PALETTE[topBand.color];
   const t = now / 1000;
   for (const bub of d.bubbles) {
@@ -450,14 +482,10 @@ function drawLiquid(idx, bands, inX, inW, inBot, unitH, now, d) {
     const bx = inX + 4 + bub.x * (inW - 8);
     const br = bub.r * (unitH * 0.05);
     const fade = Math.sin(prog * Math.PI);
-    ctx.beginPath();
-    ctx.arc(bx, by, br, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255,255,255,${0.28 * fade})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+    ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${0.28 * fade})`; ctx.lineWidth = 1; ctx.stroke();
   }
 
-  // rippling surface
   const idle = 1.1, amp = idle + d.wave;
   const k1 = (Math.PI * 2 * 1.25) / inW, k2 = (Math.PI * 2 * 2.1) / inW;
   const crest = (x) => Math.sin(x * k1 + t * 2.4 + d.phase) * amp + Math.sin(x * k2 - t * 3.1 + d.phase) * amp * 0.45;
@@ -473,13 +501,9 @@ function drawLiquid(idx, bands, inX, inW, inBot, unitH, now, d) {
   ctx.fillStyle = mg; ctx.fill();
 
   ctx.beginPath();
-  for (let x = 0; x <= inW; x += step) {
-    const px = inX + x, py = surfaceY + crest(x) - 1;
-    if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-  }
+  for (let x = 0; x <= inW; x += step) { const px = inX + x, py = surfaceY + crest(x) - 1; if (x === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
   ctx.strokeStyle = "rgba(255,255,255,0.55)"; ctx.lineWidth = 1.6; ctx.stroke();
 
-  // cylinder shading, limited to the liquid region
   ctx.save();
   ctx.beginPath();
   ctx.rect(inX - 1, surfaceY - amp - 2, inW + 2, inBot - surfaceY + amp + 6);
@@ -499,75 +523,53 @@ function drawLiquid(idx, bands, inX, inW, inBot, unitH, now, d) {
 /* ---------- pour stream + splash ---------- */
 function drawPour(now) {
   if (!pour) return;
-  const p = pourProgress(), L = LAYOUT;
+  const p = pourProgress(), L = LAYOUT, m = { ...L.m, wall: L.wall };
   const from = L.rects[pour.from], to = L.rects[pour.to];
-  const xf = tubeXf(pour.from, now);
-  const dir = xf.dir;
-  const pal = PALETTE[pour.color];
+  const xf = tubeXf(pour.from, now), dir = xf.dir, pal = PALETTE[pour.color];
 
-  // spout = the low lip corner of the tilted source
-  const lipLocalX = dir > 0 ? from.x + from.w * 0.9 : from.x + from.w * 0.1;
-  const lip = xfPoint(lipLocalX, from.y + from.w * 0.06, xf);
+  const neckTopLocal = from.y + m.capH;
+  const lip = xfPoint(from.cx + dir * m.neckW * 0.4, neckTopLocal, xf);
 
-  // destination surface point
   const toBands = displayBands(pour.to);
   let tot = 0; for (const b of toBands) tot += b.units;
-  const inBot = to.y + to.h - L.wall;
-  const surfaceY = inBot - tot * L.unitH;
-  const tx = to.cx, ty = surfaceY;
+  const inBot = to.y + to.h - m.wall;
+  const ty = inBot - tot * L.unitH, tx = to.cx;
 
   const alpha = Math.min(clamp((p - 0.2) / 0.08), clamp((0.84 - p) / 0.08));
   if (alpha > 0.01) {
-    const mx = (lip.x + tx) / 2 + dir * 6;
-    const apexY = Math.min(lip.y, ty) - 8;
-    // gooey ribbon
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(lip.x, lip.y);
-    ctx.quadraticCurveTo(mx, apexY, tx, ty);
-    const wS = Math.max(4, L.tubeW * 0.15);
+    const mx = (lip.x + tx) / 2 + dir * 6, apexY = Math.min(lip.y, ty) - 8;
+    ctx.save(); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(lip.x, lip.y); ctx.quadraticCurveTo(mx, apexY, tx, ty);
+    const wS = Math.max(4, L.tubeW * 0.14);
     ctx.strokeStyle = rgba(pal.b, 0.95 * alpha); ctx.lineWidth = wS; ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(lip.x, lip.y);
-    ctx.quadraticCurveTo(mx, apexY, tx, ty);
+    ctx.beginPath(); ctx.moveTo(lip.x, lip.y); ctx.quadraticCurveTo(mx, apexY, tx, ty);
     ctx.strokeStyle = rgba(pal.l, 0.9 * alpha); ctx.lineWidth = wS * 0.4; ctx.stroke();
     ctx.restore();
-    // leading droplet
     for (let i = 0; i < 2; i++) {
       const u = ((now / 240) + i / 2) % 1;
       const bx = bez(lip.x, mx, tx, u), by = bez(lip.y, apexY, ty, u);
-      ctx.beginPath(); ctx.arc(bx, by, wS * 0.24, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(pal.l, 0.85 * alpha); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, wS * 0.24, 0, Math.PI * 2); ctx.fillStyle = rgba(pal.l, 0.85 * alpha); ctx.fill();
     }
   }
-
-  // splash ripples at destination
   if (p > 0.34 && p < 0.98) {
-    const inW = to.w - L.wall * 2, rp = (p - 0.34) / 0.64;
+    const inW = to.w - m.wall * 2, rp = (p - 0.34) / 0.64;
     for (let i = 0; i < 2; i++) {
       const rr = (rp * 1.5 + i * 0.5) % 1;
-      ctx.beginPath();
-      ctx.ellipse(tx, ty, inW * 0.5 * rr, 4 * rr, 0, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.ellipse(tx, ty, inW * 0.5 * rr, 4 * rr, 0, 0, Math.PI * 2);
       ctx.strokeStyle = rgba(pal.l, (1 - rr) * 0.5); ctx.lineWidth = 1.5; ctx.stroke();
     }
   }
 }
 function bez(a, b, c, t) { const u = 1 - t; return u * u * a + 2 * u * t * b + t * t * c; }
-let FREEZE = null; // debug: pin pour progress for screenshots
 function pourProgress() { if (FREEZE != null) return FREEZE; return pour ? clamp((performance.now() - pour.start) / POUR_MS) : 0; }
-
 function clamp(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
 function easeOut(t) { return 1 - Math.pow(1 - t, 2.2); }
 function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
 
 /* ============================================================
-   Main loop — source tube drawn last so its lip overlaps.
+   Main loop
    ============================================================ */
 function frame(now) {
-  // Self-heal: if the board's measured size ever differs from what the
-  // canvas was sized for (first paint before layout settled, web-font
-  // reflow, window/orientation change, no resize event fired), re-sync.
   if (boardEl.clientWidth !== VIEW.w || boardEl.clientHeight !== VIEW.h) resize();
   if (VIEW.w < 4 || VIEW.h < 4) { requestAnimationFrame(frame); return; }
   syncDyn();
@@ -582,7 +584,7 @@ function frame(now) {
   ctx.clearRect(0, 0, VIEW.w, VIEW.h);
   for (let i = 0; i < state.tubes.length; i++) if (!(pour && pour.from === i)) drawTube(i, now);
   drawPour(now);
-  if (pour) drawTube(pour.from, now); // tilted source on top
+  if (pour) drawTube(pour.from, now);
   requestAnimationFrame(frame);
 }
 
@@ -616,125 +618,179 @@ function onTubeClick(idx) {
     pushHistory();
     applyPour(state.tubes, from, to);
     state.moves++; state.selected = null;
-    updateHud();
     pour = { from, to, color, amount, fromPre, toPre, start: performance.now(), done: false };
-    dyn[from].wave = 3;
-    sfx("pour");
+    dyn[from].wave = 3; sfx("pour");
   } else {
     state.selected = state.tubes[to].length ? to : null;
   }
 }
-
 function finalizePour(now) {
   pour.done = true;
   const to = pour.to, from = pour.from;
   pour = null;
   dyn[to].wave = 6;
-  let completed = false;
-  if (isTubeComplete(state.tubes[to])) { dyn[to].completeAt = now; completed = true; }
-  if (isTubeComplete(state.tubes[from])) { dyn[from].completeAt = now; completed = true; }
-  if (completed) sfx("complete");
+  let done = false;
+  if (isTubeComplete(state.tubes[to])) { dyn[to].completeAt = now; done = true; }
+  if (isTubeComplete(state.tubes[from])) { dyn[from].completeAt = now; done = true; }
+  if (done) sfx("complete");
   if (isSolved(state.tubes)) onWin();
 }
-
 canvas.addEventListener("click", (e) => { audioResume(); onTubeClick(pointerToTube(e.clientX, e.clientY)); });
 
 /* ============================================================
-   Controls
+   Power-ups  (Undo / Hint / +Bottle) with a rewarded-ad economy
    ============================================================ */
 function pushHistory() {
   state.history.push({ tubes: state.tubes.map((t) => t.slice()), moves: state.moves });
   if (state.history.length > 400) state.history.shift();
 }
-function undo() {
-  if (!state.history.length || state.won || pour) return;
+
+// Undo
+function useUndo() {
+  if (state.won || pour) return;
+  if (state.pw.undo > 0) { if (doUndo()) { state.pw.undo--; savePW(); updateHud(); } }
+  else if (state.history.length) openAd("undo");
+  else flashBtn("undoBtn");
+}
+function doUndo() {
+  if (!state.history.length) return false;
   const prev = state.history.pop();
   state.tubes = prev.tubes; state.moves = prev.moves;
   state.selected = null; state.hint = null;
-  syncDyn(); updateHud(); sfx("pick");
+  syncDyn(); sfx("pick"); return true;
 }
-function restart() {
-  if (state.won || pour || !state.history.length) return;
-  state.tubes = state.history[0].tubes.map((t) => t.slice());
-  state.moves = 0; state.history = []; state.selected = null; state.hint = null;
-  syncDyn(); updateHud();
-}
-function addTube() {
-  if (state.addUsed || state.won || pour) return;
-  pushHistory();
-  state.tubes.push([]);
-  state.addUsed = true; state.selected = null;
-  dyn.push(newDyn(state.tubes.length - 1));
-  updateHud();
-}
-function hint() {
+// Hint
+function useHint() {
   if (state.won || pour) return;
+  if (state.pw.hint > 0) { if (doHint()) { state.pw.hint--; savePW(); updateHud(); } }
+  else openAd("hint");
+}
+function doHint() {
   const path = solvePath(state.tubes, 300000);
   if (path && path.length) {
     const mv = path[0];
-    state.hint = { from: mv.from, to: mv.to, until: performance.now() + 2200 };
-    state.selected = null;
-  } else {
-    // no solution from here — nudge the player to undo
-    flashButton("undoBtn");
+    state.hint = { from: mv.from, to: mv.to, until: performance.now() + 2400 };
+    state.selected = null; return true;
   }
+  flashBtn("undoBtn"); return false; // stuck — suggest undo
 }
-function flashButton(id) {
-  const el = document.getElementById(id);
-  el.classList.add("pulse");
-  setTimeout(() => el.classList.remove("pulse"), 1600);
+// +Bottle
+function useAdd() {
+  if (state.won || pour) return;
+  if (state.pw.add > 0) { doAdd(); state.pw.add--; savePW(); updateHud(); }
+  else openAd("add");
+}
+function doAdd() {
+  pushHistory();
+  state.tubes.push([]);
+  state.selected = null;
+  dyn.push(newDyn(state.tubes.length - 1));
 }
 
-function newLevel(advance) { if (advance) state.level++; loadLevel(state.level); }
+function flashBtn(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.add("pulse");
+  setTimeout(() => el.classList.remove("pulse"), 1400);
+}
+
+/* ---------- rewarded ad (simulated) ---------- */
+const adModal = document.getElementById("adModal");
+const AD_INFO = {
+  undo: { icon: "↩️", reward: "Undo your last move" },
+  hint: { icon: "💡", reward: "+1 Hint" },
+  add: { icon: "🧪", reward: "+1 Empty bottle" },
+};
+let adKind = null, adTimer = null;
+function openAd(kind) {
+  adKind = kind;
+  const info = AD_INFO[kind];
+  document.getElementById("adIcon").textContent = info.icon;
+  document.getElementById("adReward").textContent = "Reward: " + info.reward;
+  document.getElementById("adHeadline").textContent = "Watch a video";
+  const fill = document.getElementById("adFill");
+  const status = document.getElementById("adStatus");
+  const claim = document.getElementById("adClaim");
+  fill.style.width = "0%"; claim.classList.add("hidden");
+  status.textContent = "Reward in 3…";
+  adModal.classList.remove("hidden");
+
+  const dur = 3000; const t0 = performance.now();
+  clearInterval(adTimer);
+  adTimer = setInterval(() => {
+    const e = performance.now() - t0, r = Math.min(1, e / dur);
+    fill.style.width = (r * 100) + "%";
+    const left = Math.ceil((dur - e) / 1000);
+    status.textContent = r < 1 ? `Reward in ${left}…` : "Reward ready!";
+    if (r >= 1) { clearInterval(adTimer); claim.classList.remove("hidden"); }
+  }, 80);
+}
+function closeAd() { clearInterval(adTimer); adModal.classList.add("hidden"); adKind = null; }
+function grantAd() {
+  const kind = adKind; closeAd();
+  if (!kind) return;
+  state.pw[kind] = (state.pw[kind] || 0) + 1; savePW(); updateHud();
+  if (kind === "undo") useUndo();
+  else if (kind === "hint") useHint();
+  else if (kind === "add") useAdd();
+}
+
+/* ============================================================
+   Levels
+   ============================================================ */
 let optimalToken = 0;
+function newLevel(advance) { if (advance) state.level++; loadLevel(state.level); }
 function loadLevel(level) {
   state.level = level;
   state.tubes = generateLevel(level);
-  state.optimal = null;
-  state.moves = 0; state.history = []; state.selected = null;
-  state.addUsed = false; state.won = false; state.hint = null;
+  state.optimal = null; state.moves = 0; state.history = [];
+  state.selected = null; state.won = false; state.hint = null;
   pour = null; dyn = []; syncDyn();
   hideWin(); updateHud();
-  // Compute the shortest solution off the critical path (used for stars).
   const token = ++optimalToken;
-  const snapshot = state.tubes.map((t) => t.slice());
-  setTimeout(() => {
-    const path = solvePath(snapshot, 150000);
-    if (token === optimalToken) state.optimal = path ? path.length : null;
-  }, 30);
+  const snap = state.tubes.map((t) => t.slice());
+  setTimeout(() => { const path = solvePath(snap, 150000); if (token === optimalToken) state.optimal = path ? path.length : null; }, 30);
 }
 
 function updateHud() {
   levelValueEl.textContent = String(state.level);
-  movesValueEl.textContent = String(state.moves);
-  const addBtn = document.getElementById("addTubeBtn");
-  addBtn.disabled = state.addUsed || state.won;
-  addBtn.classList.toggle("spent", state.addUsed);
-  document.getElementById("undoBtn").disabled = state.history.length === 0 || state.won;
-  document.getElementById("hintBtn").disabled = state.won;
+  coinValueEl.textContent = String(state.coins);
+  setBadge("undoBadge", state.pw.undo);
+  setBadge("hintBadge", state.pw.hint);
+  setBadge("addBadge", state.pw.add);
+}
+function setBadge(id, n) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (n > 0) { el.textContent = String(n); el.classList.remove("ad"); }
+  else { el.textContent = ""; el.classList.add("ad"); }
 }
 
-/* ---------- Win overlay + stars + confetti ---------- */
+/* ---------- Win + stars + coins + confetti ---------- */
 const overlay = document.getElementById("winOverlay");
 function starCount() {
   const opt = state.optimal;
-  if (!opt) return state.moves <= (state.tubes.length * 3) ? 3 : 2;
+  if (!opt) return state.moves <= state.tubes.length * 3 ? 3 : 2;
   if (state.moves <= opt) return 3;
   if (state.moves <= Math.ceil(opt * 1.4)) return 2;
   return 1;
 }
 function onWin() {
-  state.won = true; state.selected = null; updateHud();
+  state.won = true; state.selected = null;
   const stars = starCount();
+  const reward = 40 + stars * 30;
+  state.coins += reward; saveCoins();
+  try { localStorage.setItem("waterpuzzle.level", String(state.level + 1)); } catch (_) {}
+  updateHud();
+
   const starEls = document.querySelectorAll("#stars .star");
   starEls.forEach((s) => s.classList.remove("on"));
-  const optTxt = state.optimal ? `（最短 <b>${state.optimal}</b> 手）` : "";
-  document.getElementById("winSub").innerHTML = `<b>${state.moves}</b> 手でクリア ${optTxt}`;
+  const optTxt = state.optimal ? ` · Best ${state.optimal}` : "";
+  document.getElementById("winSub").innerHTML = `Cleared in <b>${state.moves}</b> moves${optTxt}`;
+  document.getElementById("winCoins").textContent = "+" + reward;
   overlay.classList.remove("hidden");
-  // pop stars in sequence
   starEls.forEach((s, i) => setTimeout(() => { if (i < stars) s.classList.add("on"); }, 260 + i * 220));
-  startConfetti();
-  sfx("win");
+  startConfetti(); sfx("win");
 }
 function hideWin() { overlay.classList.add("hidden"); stopConfetti(); }
 
@@ -748,18 +804,14 @@ function startConfetti() {
   cctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const cols = ["#ff6b6b", "#ffd34e", "#33d16f", "#34d3ff", "#a855f7", "#ec4899"];
   confetti = [];
-  for (let i = 0; i < 140; i++) confetti.push({
-    x: w / 2 + (Math.random() - 0.5) * w * 0.5,
-    y: h * 0.32 + (Math.random() - 0.5) * 40,
-    vx: (Math.random() - 0.5) * 8,
-    vy: -6 - Math.random() * 7,
-    g: 0.22 + Math.random() * 0.12,
-    r: 4 + Math.random() * 5,
+  for (let i = 0; i < 150; i++) confetti.push({
+    x: w / 2 + (Math.random() - 0.5) * w * 0.5, y: h * 0.3 + (Math.random() - 0.5) * 40,
+    vx: (Math.random() - 0.5) * 8, vy: -6 - Math.random() * 7,
+    g: 0.22 + Math.random() * 0.12, r: 4 + Math.random() * 5,
     rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.3,
     col: cols[(Math.random() * cols.length) | 0], life: 0,
   });
-  cancelAnimationFrame(confettiRAF);
-  confettiStep();
+  cancelAnimationFrame(confettiRAF); confettiStep();
 }
 function confettiStep() {
   const w = confettiCanvas.clientWidth, h = confettiCanvas.clientHeight;
@@ -768,17 +820,15 @@ function confettiStep() {
   for (const c of confetti) {
     c.vy += c.g; c.x += c.vx; c.y += c.vy; c.vx *= 0.99; c.rot += c.vr; c.life++;
     if (c.y < h + 20) alive++;
-    cctx.save();
-    cctx.translate(c.x, c.y); cctx.rotate(c.rot);
+    cctx.save(); cctx.translate(c.x, c.y); cctx.rotate(c.rot);
     cctx.fillStyle = c.col; cctx.globalAlpha = Math.max(0, 1 - c.life / 220);
-    cctx.fillRect(-c.r / 2, -c.r / 2, c.r, c.r * 1.6);
-    cctx.restore();
+    cctx.fillRect(-c.r / 2, -c.r / 2, c.r, c.r * 1.6); cctx.restore();
   }
   if (alive > 0 && !overlay.classList.contains("hidden")) confettiRAF = requestAnimationFrame(confettiStep);
 }
 function stopConfetti() { cancelAnimationFrame(confettiRAF); cctx && cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
 
-/* ---------- Sound (WebAudio, no assets) ---------- */
+/* ---------- Sound ---------- */
 let AC = null, soundOn = true;
 try { soundOn = localStorage.getItem("waterpuzzle.sound") !== "0"; } catch (_) {}
 function audioResume() {
@@ -794,77 +844,76 @@ function tone(freq, dur, type = "sine", vol = 0.12, when = 0) {
   g.gain.setValueAtTime(0.0001, t0);
   g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g); g.connect(AC.destination);
-  o.start(t0); o.stop(t0 + dur + 0.02);
+  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + dur + 0.02);
 }
 function sfx(kind) {
-  if (!soundOn) return;
-  audioResume();
-  if (!AC) return;
+  if (!soundOn) return; audioResume(); if (!AC) return;
   if (kind === "pick") tone(520, 0.09, "triangle", 0.08);
   else if (kind === "pour") { tone(300, 0.14, "sine", 0.10); tone(220, 0.22, "sine", 0.06, 0.05); }
   else if (kind === "complete") { tone(660, 0.12, "triangle", 0.12); tone(880, 0.16, "triangle", 0.10, 0.09); }
   else if (kind === "win") { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, "triangle", 0.12, i * 0.12)); }
 }
 
-/* ============================================================
-   Wire up — null-safe so a missing element (e.g. a stale cached
-   asset mismatch) can never crash the whole script and blank the
-   board. Each binding is independent.
-   ============================================================ */
-function on(id, evt, fn) {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(evt, fn);
+/* ---------- Persistence ---------- */
+function savePW() { try { localStorage.setItem("waterpuzzle.pw", JSON.stringify(state.pw)); } catch (_) {} }
+function saveCoins() { try { localStorage.setItem("waterpuzzle.coins", String(state.coins)); } catch (_) {} }
+function loadPersisted() {
+  try {
+    const pw = JSON.parse(localStorage.getItem("waterpuzzle.pw") || "null");
+    if (pw && typeof pw === "object") state.pw = { undo: pw.undo ?? PW_DEFAULT.undo, hint: pw.hint ?? PW_DEFAULT.hint, add: pw.add ?? PW_DEFAULT.add };
+    state.coins = parseInt(localStorage.getItem("waterpuzzle.coins") || "0", 10) || 0;
+  } catch (_) {}
 }
-on("undoBtn", "click", () => { audioResume(); undo(); });
-on("restartBtn", "click", restart);
-on("addTubeBtn", "click", addTube);
-on("hintBtn", "click", () => { audioResume(); hint(); });
-on("replayBtn", "click", () => { hideWin(); loadLevel(state.level); });
-on("nextLevelBtn", "click", () => newLevel(true));
-
-const soundBtn = document.getElementById("soundBtn");
-function refreshSoundBtn() {
-  if (!soundBtn) return;
-  soundBtn.textContent = soundOn ? "🔊" : "🔇";
-  soundBtn.classList.toggle("muted", !soundOn);
-}
-on("soundBtn", "click", () => {
-  soundOn = !soundOn;
-  try { localStorage.setItem("waterpuzzle.sound", soundOn ? "1" : "0"); } catch (_) {}
-  refreshSoundBtn();
-  if (soundOn) { audioResume(); sfx("pick"); }
-});
-refreshSoundBtn();
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "u" || e.key === "U") undo();
-  else if (e.key === "r" || e.key === "R") restart();
-  else if (e.key === "h" || e.key === "H") hint();
-  else if (e.key === "n" || e.key === "N") newLevel(true);
-});
-window.addEventListener("resize", resize);
-window.addEventListener("load", resize);
-// Re-sync the canvas whenever the board box changes size (covers font
-// reflow, mobile URL-bar show/hide, split-screen, etc.).
-if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
-
-// Persist progress on win.
-const _onWin = onWin;
-onWin = function () { _onWin(); try { localStorage.setItem("waterpuzzle.level", String(state.level + 1)); } catch (_) {} };
-
 function loadProgress() {
   try { const v = parseInt(localStorage.getItem("waterpuzzle.level") || "1", 10); return v > 0 ? v : 1; } catch (_) { return 1; }
 }
 
-// Test / debug hook.
+/* ============================================================
+   Wire up (null-safe)
+   ============================================================ */
+function on(id, evt, fn) { const el = document.getElementById(id); if (el) el.addEventListener(evt, fn); }
+
+on("undoBtn", "click", () => { audioResume(); useUndo(); });
+on("hintBtn", "click", () => { audioResume(); useHint(); });
+on("addTubeBtn", "click", () => { audioResume(); useAdd(); });
+
+on("replayBtn", "click", () => { hideWin(); loadLevel(state.level); });
+on("nextLevelBtn", "click", () => newLevel(true));
+
+on("adClaim", "click", () => { audioResume(); grantAd(); });
+on("adClose", "click", closeAd);
+
+// Settings modal
+const settingsModal = document.getElementById("settingsModal");
+function refreshSoundRow() { const el = document.getElementById("soundState"); if (el) el.textContent = soundOn ? "On" : "Off"; }
+on("settingsBtn", "click", () => { refreshSoundRow(); settingsModal.classList.remove("hidden"); });
+on("closeSettings", "click", () => settingsModal.classList.add("hidden"));
+on("restartLevelBtn", "click", () => { settingsModal.classList.add("hidden"); const first = state.history[0]; if (first && !state.won) { state.tubes = first.tubes.map((t) => t.slice()); state.moves = 0; state.history = []; state.selected = null; state.hint = null; syncDyn(); } else if (!state.won) { loadLevel(state.level); } });
+on("soundToggle", "click", () => {
+  soundOn = !soundOn;
+  try { localStorage.setItem("waterpuzzle.sound", soundOn ? "1" : "0"); } catch (_) {}
+  refreshSoundRow();
+  if (soundOn) { audioResume(); sfx("pick"); }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "u" || e.key === "U") useUndo();
+  else if (e.key === "h" || e.key === "H") useHint();
+  else if (e.key === "b" || e.key === "B") useAdd();
+  else if (e.key === "n" || e.key === "N") newLevel(true);
+});
+window.addEventListener("resize", resize);
+window.addEventListener("load", resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
+
 window.WaterPuzzle = {
   state, layout: () => LAYOUT, click: onTubeClick, pouring: () => !!pour,
-  legalMoves, applyPour, isSolved, boardKey, solvePath, hint, undo,
-  pourP: () => pourProgress(),
-  freeze: (v) => { FREEZE = v; },
+  legalMoves, applyPour, isSolved, boardKey, solvePath,
+  useUndo, useHint, useAdd, openAd, grantAd,
+  pourP: () => pourProgress(), freeze: (v) => { FREEZE = v; },
 };
 
+loadPersisted();
 resize();
 loadLevel(loadProgress());
 requestAnimationFrame(frame);
