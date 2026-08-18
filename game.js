@@ -195,8 +195,9 @@ function newDyn(i) {
   const bubbles = [];
   const n = 3 + (i % 3);
   for (let k = 0; k < n; k++) bubbles.push({ x: Math.random(), r: 0.5 + Math.random(), sp: 0.15 + Math.random() * 0.25, ph: Math.random() });
-  return { lift: 0, wave: 0, phase: Math.random() * 6.28, completeAt: -1, bubbles };
+  return { lift: 0, wave: 0, phase: Math.random() * 6.28, completeAt: -1, completeColor: 0, sparks: [], bubbles };
 }
+const COMPLETE_MS = 850;
 
 function resize() {
   DPR = Math.min(window.devicePixelRatio || 1, 2.5);
@@ -268,23 +269,35 @@ function rgb(hex) { const v = hex.replace("#", ""); return [parseInt(v.slice(0, 
 function rgba(hex, a) { const c = rgb(hex); return `rgba(${c[0]},${c[1]},${c[2]},${a})`; }
 
 /* ---------- bottle outline ---------- */
+function roundedBar(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 function bottlePath(x, y, w, m) {
   const cx = x + w / 2, nhw = m.neckW / 2;
   const neckTop = y + m.capH;
   const shoulderTop = neckTop + m.neckH;
   const bodyTop = shoulderTop + m.shoulderH;
   const bodyBot = bodyTop + m.bodyH;
-  const botR = w * 0.42;
+  const botR = w * 0.44;
+  const sMidY = shoulderTop + (bodyTop - shoulderTop) * 0.55;
   ctx.beginPath();
   ctx.moveTo(cx - nhw, neckTop);
   ctx.lineTo(cx - nhw, shoulderTop);
-  ctx.quadraticCurveTo(x, shoulderTop, x, bodyTop);
+  // smooth S-curve shoulder to the body wall
+  ctx.bezierCurveTo(cx - nhw, sMidY, x, shoulderTop + (bodyTop - shoulderTop) * 0.45, x, bodyTop);
   ctx.lineTo(x, bodyBot - botR);
   ctx.quadraticCurveTo(x, bodyBot, x + botR, bodyBot);
   ctx.lineTo(x + w - botR, bodyBot);
   ctx.quadraticCurveTo(x + w, bodyBot, x + w, bodyBot - botR);
   ctx.lineTo(x + w, bodyTop);
-  ctx.quadraticCurveTo(x + w, shoulderTop, cx + nhw, shoulderTop);
+  ctx.bezierCurveTo(x + w, shoulderTop + (bodyTop - shoulderTop) * 0.45, cx + nhw, sMidY, cx + nhw, shoulderTop);
   ctx.lineTo(cx + nhw, neckTop);
   ctx.closePath();
   return { cx, neckTop, shoulderTop, bodyTop, bodyBot, inBot: bodyBot - m.wall };
@@ -295,8 +308,9 @@ function tubeXf(idx, now) {
   const L = LAYOUT, r = L.rects[idx], d = dyn[idx];
   let scale = 1;
   if (d.completeAt >= 0) {
-    const t = (now - d.completeAt) / 460;
-    if (t < 1) scale = 1 + Math.sin(t * Math.PI) * 0.07; else d.completeAt = -1;
+    const t = (now - d.completeAt) / COMPLETE_MS;
+    if (t < 1) scale = 1 + 0.17 * Math.sin(t * Math.PI) * Math.exp(-1.6 * t) + 0.05 * Math.sin(t * Math.PI * 3) * Math.exp(-3 * t);
+    // completeAt is cleared by the FX pass, not here
   }
   if (pour && pour.from === idx) {
     const p = pourProgress(), ta = tiltAmt(p);
@@ -344,13 +358,23 @@ function drawTube(idx, now) {
   const gp = bottlePath(x + 2, y + 9, w, m); ctx.fill();
   ctx.restore();
 
-  // glass back
+  // glass back — cool, slightly blue-tinted glass
   const g = bottlePath(x, y, w, m);
   const gb = ctx.createLinearGradient(x, y, x + w, y);
-  gb.addColorStop(0, "rgba(255,255,255,0.13)");
-  gb.addColorStop(0.5, "rgba(255,255,255,0.04)");
-  gb.addColorStop(1, "rgba(255,255,255,0.10)");
+  gb.addColorStop(0, "rgba(214,230,255,0.18)");
+  gb.addColorStop(0.45, "rgba(255,255,255,0.05)");
+  gb.addColorStop(0.75, "rgba(180,200,255,0.05)");
+  gb.addColorStop(1, "rgba(150,175,235,0.13)");
   ctx.fillStyle = gb; ctx.fill();
+  // inner base shading for depth
+  ctx.save();
+  bottlePath(x, y, w, m); ctx.clip();
+  const bshade = ctx.createLinearGradient(0, g.bodyBot - w * 0.5, 0, g.bodyBot);
+  bshade.addColorStop(0, "rgba(0,0,0,0)");
+  bshade.addColorStop(1, "rgba(0,0,0,0.22)");
+  ctx.fillStyle = bshade;
+  ctx.fillRect(x, g.bodyBot - w * 0.5, w, w * 0.5);
+  ctx.restore();
 
   // liquid, clipped to bottle interior
   const bands = displayBands(idx);
@@ -364,36 +388,79 @@ function drawTube(idx, now) {
 
   drawGlassFront(idx, x, y, w, m, g, now);
 
-  // cork on filled, idle bottles
+  // shine sweep across a just-completed bottle
+  if (dyn[idx].completeAt >= 0) {
+    const t = (now - dyn[idx].completeAt) / COMPLETE_MS;
+    if (t < 0.7) {
+      ctx.save();
+      bottlePath(x, y, w, m); ctx.clip();
+      const sweep = -0.3 + (t / 0.7) * 1.6; // -0.3 .. 1.3 of width
+      const sx = x + sweep * w;
+      ctx.translate(sx, y); ctx.rotate(-0.35);
+      const sg = ctx.createLinearGradient(-w * 0.25, 0, w * 0.25, 0);
+      sg.addColorStop(0, "rgba(255,255,255,0)");
+      sg.addColorStop(0.5, `rgba(255,255,255,${0.5 * (1 - t / 0.7)})`);
+      sg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = sg;
+      ctx.fillRect(-w * 0.25, -m.capH, w * 0.5, g.bodyBot - y + m.capH * 2);
+      ctx.restore();
+    }
+  }
+
+  // cork on filled, idle bottles (with a "slam" bounce when just completed)
   const uncorked = state.selected === idx || (pour && (pour.from === idx || pour.to === idx));
-  if (bands.length && !uncorked) drawCork(g.cx, g.neckTop, m);
+  if (bands.length && !uncorked) {
+    let corkDrop = 0;
+    if (dyn[idx].completeAt >= 0) {
+      const t = clamp((now - dyn[idx].completeAt) / 320);
+      corkDrop = -(1 - easeOutBounce(t)) * m.capH * 2.2;
+    }
+    drawCork(g.cx, g.neckTop + corkDrop, m);
+  }
 
   ctx.restore();
 }
+function easeOutBounce(t) {
+  const n = 7.5625, d = 2.75;
+  if (t < 1 / d) return n * t * t;
+  if (t < 2 / d) { t -= 1.5 / d; return n * t * t + 0.75; }
+  if (t < 2.5 / d) { t -= 2.25 / d; return n * t * t + 0.9375; }
+  t -= 2.625 / d; return n * t * t + 0.984375;
+}
 
 function drawCork(cx, neckTop, m) {
-  const cw = m.neckW + m.neckW * 0.24;
-  const ch = m.capH * 1.05;
-  const x = cx - cw / 2, y = neckTop - ch + 2, r = cw * 0.28;
+  const cw = m.neckW + m.neckW * 0.30;
+  const ch = m.capH * 1.15;
+  const x = cx - cw / 2, y = neckTop - ch + 3, r = cw * 0.30;
+  // rounded-top cap
   ctx.beginPath();
-  ctx.moveTo(x, y + r);
+  ctx.moveTo(x, y + ch);
+  ctx.lineTo(x, y + r);
   ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.lineTo(x + cw - r, y);
   ctx.quadraticCurveTo(x + cw, y, x + cw, y + r);
   ctx.lineTo(x + cw, y + ch);
-  ctx.lineTo(x, y + ch);
   ctx.closePath();
   const cg = ctx.createLinearGradient(x, y, x + cw, y);
-  cg.addColorStop(0, "#e8a94a");
-  cg.addColorStop(0.5, "#ffd98a");
-  cg.addColorStop(1, "#c07d2c");
+  cg.addColorStop(0, "#c8862f");
+  cg.addColorStop(0.32, "#ffe6a0");
+  cg.addColorStop(0.5, "#ffd275");
+  cg.addColorStop(0.7, "#f2b64a");
+  cg.addColorStop(1, "#a96a1e");
   ctx.fillStyle = cg; ctx.fill();
-  // band
-  ctx.fillStyle = "rgba(120,70,10,0.35)";
-  ctx.fillRect(x, y + ch * 0.55, cw, ch * 0.16);
-  // top gloss
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
-  ctx.fillRect(x + cw * 0.16, y + ch * 0.14, cw * 0.24, ch * 0.28);
+  // vertical sheen
+  const vg = ctx.createLinearGradient(0, y, 0, y + ch);
+  vg.addColorStop(0, "rgba(255,255,255,0.45)");
+  vg.addColorStop(0.35, "rgba(255,255,255,0.05)");
+  vg.addColorStop(1, "rgba(0,0,0,0.15)");
+  ctx.fillStyle = vg; ctx.fill();
+  // dark band near the neck
+  ctx.fillStyle = "rgba(110,60,5,0.40)";
+  ctx.fillRect(x, y + ch * 0.62, cw, ch * 0.14);
+  // specular dot
+  ctx.beginPath();
+  ctx.ellipse(x + cw * 0.30, y + ch * 0.26, cw * 0.14, ch * 0.16, -0.3, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.fill();
 }
 
 function drawGlassFront(idx, x, y, w, m, g, now) {
@@ -401,24 +468,31 @@ function drawGlassFront(idx, x, y, w, m, g, now) {
   ctx.save();
   ctx.beginPath();
   ctx.ellipse(g.cx, g.neckTop, m.neckW / 2, m.wall * 1.0, 0, 0, Math.PI * 2);
-  ctx.strokeStyle = "rgba(255,255,255,0.32)";
+  ctx.strokeStyle = "rgba(255,255,255,0.34)";
   ctx.lineWidth = Math.max(1, m.wall * 0.5);
   ctx.stroke();
   ctx.restore();
 
-  // gloss streaks
   ctx.save();
   bottlePath(x, y, w, m); ctx.clip();
-  let gg = ctx.createLinearGradient(x + w * 0.12, 0, x + w * 0.4, 0);
-  gg.addColorStop(0, "rgba(255,255,255,0.40)");
+  // bright specular highlight streak (left)
+  let gg = ctx.createLinearGradient(x + w * 0.14, 0, x + w * 0.34, 0);
+  gg.addColorStop(0, "rgba(255,255,255,0)");
+  gg.addColorStop(0.5, "rgba(255,255,255,0.55)");
   gg.addColorStop(1, "rgba(255,255,255,0)");
   ctx.fillStyle = gg;
-  ctx.fillRect(x + w * 0.1, g.bodyTop, w * 0.22, g.bodyBot - g.bodyTop);
-  gg = ctx.createLinearGradient(x + w * 0.78, 0, x + w * 0.94, 0);
+  roundedBar(x + w * 0.14, g.shoulderTop + m.wall, w * 0.14, g.bodyBot - g.shoulderTop - w * 0.32, w * 0.07);
+  ctx.fill();
+  // thin secondary highlight
+  ctx.fillStyle = "rgba(255,255,255,0.28)";
+  roundedBar(x + w * 0.30, g.bodyTop + w * 0.1, w * 0.045, g.bodyBot - g.bodyTop - w * 0.4, w * 0.025);
+  ctx.fill();
+  // soft right-edge rim light
+  gg = ctx.createLinearGradient(x + w * 0.80, 0, x + w * 0.97, 0);
   gg.addColorStop(0, "rgba(255,255,255,0)");
-  gg.addColorStop(1, "rgba(255,255,255,0.14)");
+  gg.addColorStop(1, "rgba(200,220,255,0.20)");
   ctx.fillStyle = gg;
-  ctx.fillRect(x + w * 0.72, g.bodyTop, w * 0.22, g.bodyBot - g.bodyTop);
+  ctx.fillRect(x + w * 0.78, g.bodyTop, w * 0.2, g.bodyBot - g.bodyTop);
   ctx.restore();
 
   // outline / selection / hint
@@ -585,6 +659,7 @@ function frame(now) {
   for (let i = 0; i < state.tubes.length; i++) if (!(pour && pour.from === i)) drawTube(i, now);
   drawPour(now);
   if (pour) drawTube(pour.from, now);
+  drawCompleteFX(now);
   requestAnimationFrame(frame);
 }
 
@@ -630,10 +705,93 @@ function finalizePour(now) {
   pour = null;
   dyn[to].wave = 6;
   let done = false;
-  if (isTubeComplete(state.tubes[to])) { dyn[to].completeAt = now; done = true; }
-  if (isTubeComplete(state.tubes[from])) { dyn[from].completeAt = now; done = true; }
+  if (isTubeComplete(state.tubes[to])) { markComplete(to, now); done = true; }
+  if (isTubeComplete(state.tubes[from])) { markComplete(from, now); done = true; }
   if (done) sfx("complete");
   if (isSolved(state.tubes)) onWin();
+}
+function markComplete(idx, now) {
+  const d = dyn[idx];
+  d.completeAt = now;
+  d.completeColor = topColor(state.tubes[idx]);
+  d.wave = 9;
+  const pal = PALETTE[d.completeColor] || { l: "#ffd34e" };
+  const cols = [pal.l, "#ffffff", "#ffe08a"];
+  d.sparks = [];
+  const n = 20;
+  for (let k = 0; k < n; k++) d.sparks.push({
+    a: (k / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.5,
+    sp: 0.75 + Math.random() * 1.0, r: 3.2 + Math.random() * 4.5,
+    spin: Math.random() * 6.28, col: cols[k % cols.length],
+  });
+}
+
+function drawSparkle(x, y, r, rot, color) {
+  ctx.save();
+  ctx.translate(x, y); ctx.rotate(rot);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, -r);
+  ctx.quadraticCurveTo(0, 0, r, 0);
+  ctx.quadraticCurveTo(0, 0, 0, r);
+  ctx.quadraticCurveTo(0, 0, -r, 0);
+  ctx.quadraticCurveTo(0, 0, 0, -r);
+  ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+
+function drawCompleteFX(now) {
+  const L = LAYOUT;
+  for (let i = 0; i < dyn.length; i++) {
+    const d = dyn[i];
+    if (d.completeAt < 0) continue;
+    const t = (now - d.completeAt) / COMPLETE_MS;
+    if (t >= 1) { d.completeAt = -1; continue; }
+    const r = L.rects[i];
+    const cx = r.cx, cyc = r.cy - d.lift * L.liftPx - r.h * 0.05, w = r.w;
+    const pal = PALETTE[d.completeColor] || { l: "#ffd34e" };
+
+    ctx.save();
+
+    // soft radial flash bloom behind the bottle
+    if (t < 0.45) {
+      const fa = 1 - t / 0.45;
+      const rad = w * (0.7 + t * 1.8);
+      const fg = ctx.createRadialGradient(cx, cyc, 0, cx, cyc, rad);
+      fg.addColorStop(0, rgba("#ffffff", 0.5 * fa));
+      fg.addColorStop(0.35, rgba(pal.l, 0.4 * fa));
+      fg.addColorStop(1, rgba(pal.l, 0));
+      ctx.fillStyle = fg;
+      ctx.beginPath(); ctx.arc(cx, cyc, rad, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // two bold expanding shock rings
+    for (let k = 0; k < 2; k++) {
+      const tt = clamp((t - k * 0.14) / 0.85);
+      if (tt <= 0) continue;
+      const rr = w * 0.42 + easeOut(tt) * w * (1.25 + k * 0.45);
+      ctx.beginPath();
+      ctx.arc(cx, cyc, rr, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba(k ? pal.l : "#ffffff", (1 - tt) * (k ? 0.7 : 0.9));
+      ctx.lineWidth = (1 - tt) * 6 + 1.5;
+      ctx.stroke();
+    }
+
+    // bright sparkle burst (solid + colored glow) — pops against the dark sky
+    for (const s of d.sparks) {
+      const dist = (w * 0.35) + easeOut(clamp(t / 0.9)) * s.sp * w * 1.55;
+      const px = cx + Math.cos(s.a) * dist;
+      const py = cyc + Math.sin(s.a) * dist;
+      const sz = s.r * (1 - t * 0.55) * 2.2;
+      if (sz <= 0.4) continue;
+      const al = Math.min(1, 1.35 - t);
+      ctx.shadowColor = rgba(pal.l, 0.9); ctx.shadowBlur = 14;
+      drawSparkle(px, py, sz * 1.7, s.spin + t * 6, rgba(pal.l, al * 0.9)); // colored halo
+      ctx.shadowBlur = 0;
+      drawSparkle(px, py, sz, s.spin + t * 6, rgba("#ffffff", al));           // white core
+    }
+    ctx.restore();
+  }
 }
 canvas.addEventListener("click", (e) => { audioResume(); onTubeClick(pointerToTube(e.clientX, e.clientY)); });
 
@@ -783,14 +941,23 @@ function onWin() {
   try { localStorage.setItem("waterpuzzle.level", String(state.level + 1)); } catch (_) {}
   updateHud();
 
-  const starEls = document.querySelectorAll("#stars .star");
-  starEls.forEach((s) => s.classList.remove("on"));
-  const optTxt = state.optimal ? ` · Best ${state.optimal}` : "";
-  document.getElementById("winSub").innerHTML = `Cleared in <b>${state.moves}</b> moves${optTxt}`;
-  document.getElementById("winCoins").textContent = "+" + reward;
-  overlay.classList.remove("hidden");
-  starEls.forEach((s, i) => setTimeout(() => { if (i < stars) s.classList.add("on"); }, 260 + i * 220));
-  startConfetti(); sfx("win");
+  // Celebration wave: every filled bottle pops in sequence before the card.
+  const filled = [];
+  for (let i = 0; i < state.tubes.length; i++) if (state.tubes[i].length) filled.push(i);
+  const t0 = performance.now();
+  filled.forEach((idx, k) => setTimeout(() => { markComplete(idx, performance.now()); sfx("complete"); }, k * 90));
+  const delay = Math.min(900, filled.length * 90 + 260);
+
+  setTimeout(() => {
+    const starEls = document.querySelectorAll("#stars .win-star");
+    starEls.forEach((s) => s.classList.remove("on"));
+    const optTxt = state.optimal ? ` · Best ${state.optimal}` : "";
+    document.getElementById("winSub").innerHTML = `Cleared in <b>${state.moves}</b> moves${optTxt}`;
+    document.getElementById("winCoins").textContent = "+" + reward;
+    overlay.classList.remove("hidden");
+    starEls.forEach((s, i) => setTimeout(() => { if (i < stars) s.classList.add("on"); }, 200 + i * 240));
+    startConfetti(); sfx("win");
+  }, delay);
 }
 function hideWin() { overlay.classList.add("hidden"); stopConfetti(); }
 
@@ -877,7 +1044,6 @@ on("undoBtn", "click", () => { audioResume(); useUndo(); });
 on("hintBtn", "click", () => { audioResume(); useHint(); });
 on("addTubeBtn", "click", () => { audioResume(); useAdd(); });
 
-on("replayBtn", "click", () => { hideWin(); loadLevel(state.level); });
 on("nextLevelBtn", "click", () => newLevel(true));
 
 on("adClaim", "click", () => { audioResume(); grantAd(); });
@@ -911,6 +1077,7 @@ window.WaterPuzzle = {
   legalMoves, applyPour, isSolved, boardKey, solvePath,
   useUndo, useHint, useAdd, openAd, grantAd,
   pourP: () => pourProgress(), freeze: (v) => { FREEZE = v; },
+  fx: (i, back) => { markComplete(i, performance.now() - (back || 0)); },
 };
 
 loadPersisted();

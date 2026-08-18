@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -57,17 +57,14 @@
   <div id="winOverlay" class="overlay hidden">
     <canvas id="confetti"></canvas>
     <div class="win-card">
-      <div class="win-ribbon">LEVEL CLEAR</div>
-      <div class="stars" id="stars">
-        <span class="star">★</span><span class="star mid">★</span><span class="star">★</span>
+      <div class="win-stars" id="stars">
+        <span class="win-star">★</span><span class="win-star mid">★</span><span class="win-star">★</span>
       </div>
+      <div class="win-ribbon">LEVEL CLEAR</div>
       <h2 class="win-title">Well done!</h2>
       <p class="win-sub" id="winSub"></p>
       <div class="win-coins"><span class="coin sm"><span class="coin-star">★</span></span> <b id="winCoins">+50</b></div>
-      <div class="win-actions">
-        <button class="btn ghost" id="replayBtn">Replay</button>
-        <button class="btn primary" id="nextLevelBtn">Next ➜</button>
-      </div>
+      <button class="btn primary wide" id="nextLevelBtn">Next ➜</button>
     </div>
   </div>
 
@@ -97,6 +94,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=3"></script>
+  <script src="game.js?v=4"></script>
 </body>
 </html>
