@@ -212,16 +212,21 @@ function resize() {
 
 function computeLayout() {
   const n = state.tubes.length;
-  const padX = 8;
-  const gapX = Math.max(12, Math.min(24, VIEW.w * 0.045));
-  const gapY = 26;
+  const padX = 10;
+  const gapX = Math.max(10, Math.min(20, VIEW.w * 0.04));
+  const gapY = 22;
 
-  const maxPerRow = VIEW.w < 520 ? 5 : 7;
+  // Aim for a consistent, slim bottle width regardless of how many bottles
+  // there are. Choose how many fit per row at that target width, then cap
+  // the actual width at the target so bottles never fatten up on wide rows.
+  const targetW = Math.max(44, Math.min(60, VIEW.w * 0.155));
+  let maxPerRow = Math.max(1, Math.floor((VIEW.w - padX * 2 + gapX) / (targetW + gapX)));
+  maxPerRow = Math.min(maxPerRow, 7);
   const rows = Math.max(1, Math.ceil(n / maxPerRow));
   const perRow = Math.ceil(n / rows);
 
-  let tubeW = (VIEW.w - padX * 2 - gapX * (perRow - 1)) / perRow;
-  tubeW = Math.max(36, Math.min(72, tubeW));
+  let tubeW = Math.min(targetW, (VIEW.w - padX * 2 - gapX * (perRow - 1)) / perRow);
+  tubeW = Math.max(34, tubeW);
 
   let wall = Math.max(2.5, tubeW * 0.05);
   let unitH = tubeW * 0.66;
@@ -930,7 +935,7 @@ function buyInShop(kind) {
   }
   state.coins -= price; saveCoins();
   state.pw[kind] = (state.pw[kind] || 0) + 1; savePW();
-  updateHud(); refreshShop(); sfx("complete");
+  updateHud(); refreshShop(); sfx("coin");
 }
 
 /* ============================================================
@@ -1035,30 +1040,125 @@ function confettiStep() {
 }
 function stopConfetti() { cancelAnimationFrame(confettiRAF); cctx && cctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height); }
 
-/* ---------- Sound ---------- */
-let AC = null, soundOn = true;
+/* ============================================================
+   Audio — juicy WebAudio SFX + a calm procedural BGM loop.
+   No asset files; everything is synthesised.
+   ============================================================ */
+let AC = null, master = null, sfxBus = null, musicBus = null, noiseBuf = null;
+let soundOn = true, musicOn = true;
 try { soundOn = localStorage.getItem("waterpuzzle.sound") !== "0"; } catch (_) {}
-function audioResume() {
-  if (!soundOn) return;
-  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { AC = null; } }
-  if (AC && AC.state === "suspended") AC.resume();
+try { musicOn = localStorage.getItem("waterpuzzle.music") !== "0"; } catch (_) {}
+
+function initAudio() {
+  if (AC) return;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { AC = null; return; }
+  master = AC.createGain(); master.gain.value = 0.9; master.connect(AC.destination);
+  sfxBus = AC.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(master);
+  musicBus = AC.createGain(); musicBus.gain.value = 0.0001;
+  const dly = AC.createDelay(0.5); dly.delayTime.value = 0.27;
+  const fb = AC.createGain(); fb.gain.value = 0.24;
+  const wet = AC.createGain(); wet.gain.value = 0.3;
+  musicBus.connect(master); musicBus.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(master);
+  const len = Math.floor(AC.sampleRate * 0.2);
+  noiseBuf = AC.createBuffer(1, len, AC.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
 }
-function tone(freq, dur, type = "sine", vol = 0.12, when = 0) {
-  if (!soundOn || !AC) return;
-  const t0 = AC.currentTime + when;
-  const o = AC.createOscillator(), g = AC.createGain();
-  o.type = type; o.frequency.value = freq;
+function audioResume() {
+  initAudio();
+  if (AC && AC.state === "suspended") AC.resume();
+  if (musicOn) startBgm();
+}
+
+/* ---- SFX voices ---- */
+function voice(freq, t0, dur, type, peak, glideTo, cutoff) {
+  if (!AC) return;
+  const o = AC.createOscillator(); o.type = type || "sine"; o.frequency.setValueAtTime(freq, t0);
+  if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur);
+  const g = AC.createGain();
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(peak, t0 + 0.008);
   g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g); g.connect(AC.destination); o.start(t0); o.stop(t0 + dur + 0.02);
+  if (cutoff) { const f = AC.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = cutoff; o.connect(f); f.connect(g); }
+  else o.connect(g);
+  g.connect(sfxBus); o.start(t0); o.stop(t0 + dur + 0.03);
+}
+function noiseHit(t0, dur, peak, cutoff) {
+  if (!AC || !noiseBuf) return;
+  const s = AC.createBufferSource(); s.buffer = noiseBuf;
+  const f = AC.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = cutoff || 1600; f.Q.value = 1.1;
+  const g = AC.createGain(); g.gain.setValueAtTime(peak, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  s.connect(f); f.connect(g); g.connect(sfxBus); s.start(t0); s.stop(t0 + dur + 0.02);
 }
 function sfx(kind) {
   if (!soundOn) return; audioResume(); if (!AC) return;
-  if (kind === "pick") tone(520, 0.09, "triangle", 0.08);
-  else if (kind === "pour") { tone(300, 0.14, "sine", 0.10); tone(220, 0.22, "sine", 0.06, 0.05); }
-  else if (kind === "complete") { tone(660, 0.12, "triangle", 0.12); tone(880, 0.16, "triangle", 0.10, 0.09); }
-  else if (kind === "win") { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, "triangle", 0.12, i * 0.12)); }
+  const t = AC.currentTime;
+  if (kind === "pick") { voice(560, t, 0.09, "triangle", 0.13, 840); noiseHit(t, 0.02, 0.05, 2600); }
+  else if (kind === "pour") { voice(360, t, 0.15, "sine", 0.11, 230, 1500); voice(560, t + 0.02, 0.1, "sine", 0.05, 320); }
+  else if (kind === "complete") { [660, 880, 1174].forEach((f, i) => voice(f, t + i * 0.07, 0.24, "triangle", 0.12)); noiseHit(t, 0.03, 0.06, 3200); }
+  else if (kind === "pop") { voice(920, t, 0.07, "sine", 0.15, 240); noiseHit(t, 0.03, 0.11, 1900); }
+  else if (kind === "coin") { voice(988, t, 0.08, "triangle", 0.11); voice(1319, t + 0.06, 0.13, "triangle", 0.11); noiseHit(t, 0.02, 0.05, 5000); }
+  else if (kind === "win") { [523, 659, 784, 1047, 1319].forEach((f, i) => voice(f, t + i * 0.1, 0.42, "triangle", 0.13)); noiseHit(t, 0.05, 0.06, 4200); }
+}
+
+/* ---- Procedural BGM: calm C–G–Am–F loop (pad + bass + soft arp) ---- */
+let bgmOn = false, bgmTimer = null, bgmStep = 0, bgmNext = 0;
+const BPM = 86, EIGHTH = (60 / BPM) / 2;
+const PROG = [
+  { root: 48, notes: [60, 64, 67] }, // C
+  { root: 43, notes: [55, 59, 62] }, // G
+  { root: 45, notes: [57, 60, 64] }, // Am
+  { root: 41, notes: [53, 57, 60] }, // F
+];
+const ARP = [0, 2, 1, 2, 0, 1, 2, 1];
+function n2f(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+function startBgm() {
+  if (bgmOn || !AC || !musicOn) return;
+  bgmOn = true; bgmStep = 0; bgmNext = AC.currentTime + 0.12;
+  musicBus.gain.cancelScheduledValues(AC.currentTime);
+  musicBus.gain.setValueAtTime(0.0001, AC.currentTime);
+  musicBus.gain.exponentialRampToValueAtTime(0.16, AC.currentTime + 2.5);
+  bgmTimer = setInterval(bgmSchedule, 60);
+}
+function stopBgm() {
+  bgmOn = false;
+  if (bgmTimer) { clearInterval(bgmTimer); bgmTimer = null; }
+  if (AC && musicBus) { musicBus.gain.cancelScheduledValues(AC.currentTime); musicBus.gain.setTargetAtTime(0.0001, AC.currentTime, 0.3); }
+}
+function bgmSchedule() {
+  if (!AC) return;
+  while (bgmNext < AC.currentTime + 0.25) {
+    const bar = Math.floor(bgmStep / 8) % 4, e = bgmStep % 8, ch = PROG[bar], t = bgmNext;
+    if (e === 0) { ch.notes.forEach((m) => padVoice(n2f(m), t, EIGHTH * 8 * 0.98)); bassVoice(n2f(ch.root), t, EIGHTH * 8 * 0.9); }
+    if (e !== 3 && e !== 7) { const m = ch.notes[ARP[e] % 3] + (e >= 4 ? 12 : 0); arpVoice(n2f(m), t, EIGHTH * 1.4); }
+    bgmNext += EIGHTH; bgmStep++;
+  }
+}
+function padVoice(f, t, dur) {
+  const o = AC.createOscillator(), o2 = AC.createOscillator(), g = AC.createGain(), lp = AC.createBiquadFilter();
+  o.type = "triangle"; o2.type = "sine"; o.frequency.value = f; o2.frequency.value = f * 1.004;
+  lp.type = "lowpass"; lp.frequency.value = 1300;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.045, t + 0.45);
+  g.gain.setValueAtTime(0.045, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(lp); o2.connect(lp); lp.connect(g); g.connect(musicBus);
+  o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+}
+function bassVoice(f, t, dur) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = "sine"; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(musicBus); o.start(t); o.stop(t + dur + 0.05);
+}
+function arpVoice(f, t, dur) {
+  const o = AC.createOscillator(), g = AC.createGain(), lp = AC.createBiquadFilter();
+  o.type = "triangle"; o.frequency.value = f; lp.type = "lowpass"; lp.frequency.value = 2600;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.055, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(lp); lp.connect(g); g.connect(musicBus); o.start(t); o.stop(t + dur + 0.03);
+}
+function setMusic(on) {
+  musicOn = on;
+  try { localStorage.setItem("waterpuzzle.music", on ? "1" : "0"); } catch (_) {}
+  if (on) { audioResume(); startBgm(); } else stopBgm();
 }
 
 /* ---------- Persistence ---------- */
@@ -1101,8 +1201,12 @@ on("storeBuy", "click", () => { audioResume(); buyPowerup(); });
 
 // Settings modal
 const settingsModal = document.getElementById("settingsModal");
-function refreshSoundRow() { const el = document.getElementById("soundState"); if (el) el.textContent = soundOn ? "On" : "Off"; }
+function refreshSoundRow() {
+  const s = document.getElementById("soundState"); if (s) s.textContent = soundOn ? "On" : "Off";
+  const m = document.getElementById("musicState"); if (m) m.textContent = musicOn ? "On" : "Off";
+}
 on("settingsBtn", "click", () => { refreshSoundRow(); settingsModal.classList.remove("hidden"); });
+on("musicToggle", "click", () => { audioResume(); setMusic(!musicOn); refreshSoundRow(); });
 on("closeSettings", "click", () => settingsModal.classList.add("hidden"));
 on("restartLevelBtn", "click", () => { settingsModal.classList.add("hidden"); const first = state.history[0]; if (first && !state.won) { state.tubes = first.tubes.map((t) => t.slice()); state.moves = 0; state.history = []; state.selected = null; state.hint = null; syncDyn(); } else if (!state.won) { loadLevel(state.level); } });
 on("soundToggle", "click", () => {
@@ -1128,6 +1232,8 @@ window.PotionPop = {
   useUndo, useHint, useAdd, openAd, grantAd, openStore, buyPowerup, openShop, buyInShop,
   pourP: () => pourProgress(), freeze: (v) => { FREEZE = v; },
   fx: (i, back) => { markComplete(i, performance.now() - (back || 0)); },
+  audio: () => ({ ac: !!AC, state: AC && AC.state, bgm: bgmOn, step: bgmStep, soundOn, musicOn }),
+  sfx,
 };
 window.WaterPuzzle = window.PotionPop; // legacy alias
 
