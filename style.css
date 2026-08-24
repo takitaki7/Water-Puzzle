@@ -9,8 +9,10 @@
   --accent: #ff4fb0;
   --pink: #ff2d95;
   --pink-2: #c400e0;
-  --violet: #a855f7;
-  --violet-2: #7a1cc9;
+  /* Electric cyan, not violet — the background itself is violet, so a
+     violet button would sink into it instead of popping forward. */
+  --sky: #2fe0ff;
+  --sky-2: #0aa3c7;
   --mint: #34d399;
   --mint-2: #059669;
   /* A single warm accent, used everywhere gold/idea/celebration appears
@@ -166,10 +168,10 @@ body {
 #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
 
 /* ============ Power-up bar ============ */
-/* A disciplined two-hue-family system: pink/violet (brand primary) for
-   actions, one single gold (--gold/--gold-2, the same tokens as the coin
-   and every other "idea/currency" surface in the app) for the hint —
-   not a scatter of near-duplicate ambers. */
+/* Four deliberately well-spaced hues, one per action, each with strong
+   value/hue contrast against the violet background so buttons pop
+   forward instead of blending in — not a monochrome family, and not a
+   scatter of near-duplicate ambers either. */
 .actions { display: flex; gap: 20px; justify-content: center; padding: 8px 0 6px; }
 .pw {
   position: relative;
@@ -184,7 +186,7 @@ body {
   transition: transform .1s, filter .2s;
 }
 #hintBtn.pw { background: linear-gradient(180deg, var(--gold), var(--gold-2)); color: var(--gold-ink); box-shadow: 0 8px 20px var(--shadow), inset 0 3px 0 rgba(255,255,255,0.5), inset 0 -4px 8px rgba(74,36,0,0.3); }
-#addTubeBtn.pw { background: linear-gradient(180deg, var(--violet), var(--violet-2)); box-shadow: 0 8px 20px var(--shadow), inset 0 3px 0 rgba(255,255,255,0.4), inset 0 -4px 8px rgba(50,0,80,0.3); }
+#addTubeBtn.pw { background: linear-gradient(180deg, var(--sky), var(--sky-2)); color: #033240; box-shadow: 0 8px 20px var(--shadow), inset 0 3px 0 rgba(255,255,255,0.5), inset 0 -4px 8px rgba(0,45,55,0.35); }
 .pw:active { transform: translateY(3px) scale(0.96); }
 .pw svg { width: 30px; height: 30px; position: relative; z-index: 1; }
 /* Hard-candy shine: a bright ellipse highlight near the top, like a
@@ -344,7 +346,7 @@ body {
 .shop-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-size: 20px; flex: 0 0 auto; }
 .shop-ic.undo { background: linear-gradient(180deg, var(--pink), var(--pink-2)); }
 .shop-ic.hint { background: linear-gradient(180deg, var(--gold), var(--gold-2)); }
-.shop-ic.add { background: linear-gradient(180deg, var(--violet), var(--violet-2)); }
+.shop-ic.add { background: linear-gradient(180deg, var(--sky), var(--sky-2)); }
 .shop-info { flex: 1; display: flex; flex-direction: column; line-height: 1.2; text-align: left; }
 .shop-info b { font-family: "Baloo 2", sans-serif; font-size: 17px; }
 .shop-info small { font-size: 12px; color: var(--text-dim); font-weight: 700; }
@@ -396,5 +398,16 @@ body {
   100% { transform: scale(1) translateY(0); }
 }
 .pop-in { animation: popIn .55s cubic-bezier(.28,1.6,.5,1) both; }
+
+/* Elastic tap-bounce: a springy overshoot on release for every button,
+   pill and row — POP is a motion quality as much as a color one. */
+@keyframes tapBounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(0.86); }
+  58% { transform: scale(1.1); }
+  78% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
+.tap-bounce { animation: tapBounce .4s cubic-bezier(.22,1.6,.4,1); }
 
 .hidden { display: none !important; }

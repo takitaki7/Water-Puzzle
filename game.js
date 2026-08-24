@@ -291,18 +291,23 @@ function bottlePath(x, y, w, m) {
   const shoulderTop = neckTop + m.neckH;
   const bodyTop = shoulderTop + m.shoulderH;
   const bodyBot = bodyTop + m.bodyH;
-  const botR = w * 0.44;
+  const botR = w * 0.48;
+  // a gentle outward belly bulge on the side walls — softer, gummier
+  // silhouette than a rigid straight-walled glass cylinder.
+  const bulge = w * 0.045;
+  const wallTop = bodyTop, wallBot = bodyBot - botR;
+  const wallMidY = wallTop + (wallBot - wallTop) * 0.5;
   const sMidY = shoulderTop + (bodyTop - shoulderTop) * 0.55;
   ctx.beginPath();
   ctx.moveTo(cx - nhw, neckTop);
   ctx.lineTo(cx - nhw, shoulderTop);
   // smooth S-curve shoulder to the body wall
   ctx.bezierCurveTo(cx - nhw, sMidY, x, shoulderTop + (bodyTop - shoulderTop) * 0.45, x, bodyTop);
-  ctx.lineTo(x, bodyBot - botR);
+  ctx.quadraticCurveTo(x - bulge, wallMidY, x, wallBot);
   ctx.quadraticCurveTo(x, bodyBot, x + botR, bodyBot);
   ctx.lineTo(x + w - botR, bodyBot);
-  ctx.quadraticCurveTo(x + w, bodyBot, x + w, bodyBot - botR);
-  ctx.lineTo(x + w, bodyTop);
+  ctx.quadraticCurveTo(x + w, bodyBot, x + w, wallBot);
+  ctx.quadraticCurveTo(x + w + bulge, wallMidY, x + w, bodyTop);
   ctx.bezierCurveTo(x + w, shoulderTop + (bodyTop - shoulderTop) * 0.45, cx + nhw, sMidY, cx + nhw, shoulderTop);
   ctx.lineTo(cx + nhw, neckTop);
   ctx.closePath();
@@ -346,15 +351,15 @@ function xfPoint(px, py, xf) {
 // "Purun" jelly squash-&-stretch — a quick springy wobble triggered on
 // pick-up and on landing a pour. Independent of tubeXf/xfPoint so pour
 // geometry (spout position, tilt) stays untouched.
-const JELLY_MS = 460;
+const JELLY_MS = 620;
 function jellyImpulse(idx, now) { if (dyn[idx]) dyn[idx].jellyAt = now; }
 function jellyScale(idx, now) {
   const d = dyn[idx];
   if (!d || d.jellyAt < 0) return { sx: 1, sy: 1 };
   const jt = (now - d.jellyAt) / JELLY_MS;
   if (jt >= 1) { d.jellyAt = -1; return { sx: 1, sy: 1 }; }
-  const decay = Math.exp(-4.4 * jt);
-  const osc = Math.sin(jt * Math.PI * 2.6) * decay * 0.10;
+  const decay = Math.exp(-3.6 * jt);
+  const osc = Math.sin(jt * Math.PI * 2.6) * decay * 0.17;
   return { sx: 1 - osc, sy: 1 + osc };
 }
 
@@ -1237,6 +1242,17 @@ function loadProgress() {
    Wire up (null-safe)
    ============================================================ */
 function on(id, evt, fn) { const el = document.getElementById(id); if (el) el.addEventListener(evt, fn); }
+
+// Shared elastic tap-bounce for every clickable "candy" surface — a springy
+// overshoot on release (not just a flat :active press) so the whole UI
+// feels bouncy/POP, without wiring a listener into every single handler.
+document.addEventListener("click", (e) => {
+  const el = e.target.closest(".pw, .round-btn, .btn, .shop-buy, .store-opt, .coin-pill, .row-btn, .ad-x");
+  if (!el) return;
+  el.classList.remove("tap-bounce");
+  void el.offsetWidth;
+  el.classList.add("tap-bounce");
+});
 
 on("undoBtn", "click", () => { audioResume(); useUndo(); });
 on("hintBtn", "click", () => { audioResume(); useHint(); });
