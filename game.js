@@ -860,18 +860,29 @@ function flashBtn(id) {
   setTimeout(() => el.classList.remove("pulse"), 1400);
 }
 
+/* ---------- shared icon set ----------
+   The same hand-drawn line-art icons used on the action bar, reused
+   everywhere a power-up is represented (shop list, get-more sheet, ad
+   modal) — an emoji glyph there would render in a completely different
+   style/weight/platform-baseline and break the "one icon language" look. */
+const ICON_SVG = {
+  undo: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10H9"/><path d="M8 5 4 9l4 4"/></svg>',
+  hint: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18.5h5"/><path d="M10.5 21.5h3"/><path d="M12 2.5a6.5 6.5 0 0 0-4.2 11.4c.8.7 1.2 1.2 1.2 2.6h6c0-1.4.4-1.9 1.2-2.6A6.5 6.5 0 0 0 12 2.5z"/></svg>',
+  add: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h3"/><path d="M9.5 2.5v3l-1.2 1.7A3 3 0 0 0 7.8 9v9.5a3 3 0 0 0 3 3h.4a3 3 0 0 0 3-3V9a3 3 0 0 0-.5-1.8L12.5 5.5v-3"/><path d="M19 3.5v5M21.5 6h-5"/></svg>',
+};
+
 /* ---------- rewarded ad (simulated) ---------- */
 const adModal = document.getElementById("adModal");
 const AD_INFO = {
-  undo: { icon: "↩️", reward: "Undo your last move" },
-  hint: { icon: "💡", reward: "+1 Hint" },
-  add: { icon: "🧪", reward: "+1 Empty bottle" },
+  undo: { reward: "Undo your last move" },
+  hint: { reward: "+1 Hint" },
+  add: { reward: "+1 Empty bottle" },
 };
 let adKind = null, adTimer = null;
 function openAd(kind) {
   adKind = kind;
   const info = AD_INFO[kind];
-  document.getElementById("adIcon").textContent = info.icon;
+  document.getElementById("adIcon").innerHTML = ICON_SVG[kind];
   document.getElementById("adReward").textContent = "Reward: " + info.reward;
   document.getElementById("adHeadline").textContent = "Watch a video";
   const fill = document.getElementById("adFill");
@@ -907,15 +918,17 @@ function grantPowerup(kind) {
 /* ---------- get-more store (watch ad OR spend coins) ---------- */
 const storeModal = document.getElementById("storeModal");
 const STORE_INFO = {
-  undo: { icon: "↩️", title: "Get more Undos" },
-  hint: { icon: "💡", title: "Get more Hints" },
-  add: { icon: "🧪", title: "Get more Bottles" },
+  undo: { title: "Get more Undos" },
+  hint: { title: "Get more Hints" },
+  add: { title: "Get more Bottles" },
 };
 let storeKind = null;
 function openStore(kind) {
   storeKind = kind;
   const info = STORE_INFO[kind], price = PRICE[kind];
-  document.getElementById("storeIcon").textContent = info.icon;
+  const storeIconEl = document.getElementById("storeIcon");
+  storeIconEl.innerHTML = ICON_SVG[kind];
+  storeIconEl.className = "store-icon " + kind;
   document.getElementById("storeTitle").textContent = info.title;
   document.getElementById("storeBuyPrice").textContent = "Buy · " + price;
   document.getElementById("storeCoins").textContent = String(state.coins);
@@ -1276,8 +1289,8 @@ on("storeBuy", "click", () => { audioResume(); buyPowerup(); });
 // Settings modal
 const settingsModal = document.getElementById("settingsModal");
 function refreshSoundRow() {
-  const s = document.getElementById("soundState"); if (s) s.textContent = soundOn ? "On" : "Off";
-  const m = document.getElementById("musicState"); if (m) m.textContent = musicOn ? "On" : "Off";
+  const s = document.getElementById("soundToggleSwitch"); if (s) s.classList.toggle("on", soundOn);
+  const m = document.getElementById("musicToggleSwitch"); if (m) m.classList.toggle("on", musicOn);
 }
 on("settingsBtn", "click", () => { refreshSoundRow(); settingsModal.classList.remove("hidden"); });
 on("musicToggle", "click", () => { audioResume(); setMusic(!musicOn); refreshSoundRow(); });

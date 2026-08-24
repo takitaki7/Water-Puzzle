@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=17" />
+  <link rel="stylesheet" href="style.css?v=18" />
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -100,8 +100,8 @@
   <div id="settingsModal" class="modal hidden">
     <div class="modal-card">
       <h3 class="modal-title">Settings</h3>
-      <button class="row-btn" id="soundToggle"><span>Sound effects</span><span class="row-val" id="soundState">On</span></button>
-      <button class="row-btn" id="musicToggle"><span>Music</span><span class="row-val" id="musicState">On</span></button>
+      <button class="row-btn" id="soundToggle"><span>Sound effects</span><span class="toggle on" id="soundToggleSwitch"><span class="toggle-knob"></span></span></button>
+      <button class="row-btn" id="musicToggle"><span>Music</span><span class="toggle on" id="musicToggleSwitch"><span class="toggle-knob"></span></span></button>
       <button class="row-btn" id="restartLevelBtn"><span>Restart level</span><span class="row-ic">⟳</span></button>
       <button class="btn primary wide" id="closeSettings">Close</button>
     </div>
@@ -115,17 +115,17 @@
       <div class="store-balance">Balance <span class="coin xs"><span class="coin-star">★</span></span> <b id="shopCoins">0</b></div>
       <div class="shop-list">
         <div class="shop-item">
-          <span class="shop-ic undo">↩</span>
+          <span class="shop-ic undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10H9"/><path d="M8 5 4 9l4 4"/></svg></span>
           <span class="shop-info"><b>Undo</b><small>Owned: <span id="ownUndo">0</span></small></span>
           <button class="shop-buy" id="buyUndo"><span class="coin xs"><span class="coin-star">★</span></span> <span id="priceUndo">60</span></button>
         </div>
         <div class="shop-item">
-          <span class="shop-ic hint">💡</span>
+          <span class="shop-ic hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 18.5h5"/><path d="M10.5 21.5h3"/><path d="M12 2.5a6.5 6.5 0 0 0-4.2 11.4c.8.7 1.2 1.2 1.2 2.6h6c0-1.4.4-1.9 1.2-2.6A6.5 6.5 0 0 0 12 2.5z"/></svg></span>
           <span class="shop-info"><b>Hint</b><small>Owned: <span id="ownHint">0</span></small></span>
           <button class="shop-buy" id="buyHint"><span class="coin xs"><span class="coin-star">★</span></span> <span id="priceHint">90</span></button>
         </div>
         <div class="shop-item">
-          <span class="shop-ic add">🧪</span>
+          <span class="shop-ic add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5h3"/><path d="M9.5 2.5v3l-1.2 1.7A3 3 0 0 0 7.8 9v9.5a3 3 0 0 0 3 3h.4a3 3 0 0 0 3-3V9a3 3 0 0 0-.5-1.8L12.5 5.5v-3"/><path d="M19 3.5v5M21.5 6h-5"/></svg></span>
           <span class="shop-info"><b>+ Bottle</b><small>Owned: <span id="ownAdd">0</span></small></span>
           <button class="shop-buy" id="buyAdd"><span class="coin xs"><span class="coin-star">★</span></span> <span id="priceAdd">140</span></button>
         </div>
@@ -137,7 +137,7 @@
   <div id="storeModal" class="modal hidden">
     <div class="modal-card store-card">
       <button class="ad-x" id="storeClose" aria-label="Close">✕</button>
-      <div class="store-icon" id="storeIcon">💡</div>
+      <div class="store-icon" id="storeIcon"></div>
       <h3 class="modal-title" id="storeTitle">Get more Hints</h3>
       <div class="store-opts">
         <button class="store-opt watch" id="storeWatch">
@@ -158,7 +158,7 @@
     <div class="ad-card">
       <div class="ad-badge">AD</div>
       <div class="ad-visual">
-        <div class="ad-icon" id="adIcon">💡</div>
+        <div class="ad-icon" id="adIcon"></div>
         <div class="ad-headline" id="adHeadline">Watch a video</div>
         <div class="ad-reward" id="adReward">Reward: +1 Hint</div>
       </div>
@@ -169,6 +169,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=17"></script>
+  <script src="game.js?v=18"></script>
 </body>
 </html>
