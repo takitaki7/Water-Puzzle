@@ -64,8 +64,8 @@
         fill="none" stroke="#ffffff" stroke-opacity=".45" stroke-width="7"/>
   <ellipse cx="512" cy="250" rx="71" ry="13" fill="none" stroke="#ffffff" stroke-opacity=".52" stroke-width="7"/>
 
-  <!-- cute sparkle glints (one cyan pop-of-colour among the white ones) -->
+  <!-- cute sparkle glints (gold echoes the coin currency, not a random hue) -->
   <path d="M648 452 q0 22 22 22 q-22 0 -22 22 q0 -22 -22 -22 q22 0 22 -22 z" fill="#ffffff" opacity=".9" filter="url(#soft)"/>
   <path d="M648 452 q0 16 16 16 q-16 0 -16 16 q0 -16 -16 -16 q16 0 16 -16 z" fill="#ffffff"/>
-  <path d="M366 320 q0 12 12 12 q-12 0 -12 12 q0 -12 -12 -12 q12 0 12 -12 z" fill="#7bf3ff" opacity=".9"/>
+  <path d="M366 320 q0 12 12 12 q-12 0 -12 12 q0 -12 -12 -12 q12 0 12 -12 z" fill="#ffd34e" opacity=".9"/>
 </svg>
