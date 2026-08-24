@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#8a2e78"/>
-      <stop offset=".55" stop-color="#5c1656"/>
-      <stop offset="1" stop-color="#2c0a30"/>
+      <stop offset="0" stop-color="#d61fc4"/>
+      <stop offset=".5" stop-color="#7a1aa8"/>
+      <stop offset="1" stop-color="#1e0a30"/>
     </linearGradient>
     <radialGradient id="halo" cx="50%" cy="44%" r="52%">
-      <stop offset="0" stop-color="#ff9fd6" stop-opacity=".55"/>
-      <stop offset="1" stop-color="#ff9fd6" stop-opacity="0"/>
+      <stop offset="0" stop-color="#ff9fe8" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#ff9fe8" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="topsheen" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity=".16"/>
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".18"/>
       <stop offset=".25" stop-color="#ffffff" stop-opacity="0"/>
     </linearGradient>
     <linearGradient id="liquid" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd9ef"/>
-      <stop offset=".34" stop-color="#ff9adb"/>
-      <stop offset=".68" stop-color="#ff5fb0"/>
-      <stop offset="1" stop-color="#d6299a"/>
+      <stop offset="0" stop-color="#ffe3f5"/>
+      <stop offset=".34" stop-color="#ff8fdc"/>
+      <stop offset=".68" stop-color="#ff2d95"/>
+      <stop offset="1" stop-color="#b400e0"/>
     </linearGradient>
     <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#ffffff" stop-opacity=".22"/>
@@ -64,8 +64,8 @@
         fill="none" stroke="#ffffff" stroke-opacity=".45" stroke-width="7"/>
   <ellipse cx="512" cy="250" rx="71" ry="13" fill="none" stroke="#ffffff" stroke-opacity=".52" stroke-width="7"/>
 
-  <!-- cute sparkle glints -->
+  <!-- cute sparkle glints (one cyan pop-of-colour among the white ones) -->
   <path d="M648 452 q0 22 22 22 q-22 0 -22 22 q0 -22 -22 -22 q22 0 22 -22 z" fill="#ffffff" opacity=".9" filter="url(#soft)"/>
   <path d="M648 452 q0 16 16 16 q-16 0 -16 16 q0 -16 -16 -16 q16 0 16 -16 z" fill="#ffffff"/>
-  <path d="M366 320 q0 12 12 12 q-12 0 -12 12 q0 -12 -12 -12 q12 0 12 -12 z" fill="#ffffff" opacity=".85"/>
+  <path d="M366 320 q0 12 12 12 q-12 0 -12 12 q0 -12 -12 -12 q12 0 12 -12 z" fill="#7bf3ff" opacity=".9"/>
 </svg>

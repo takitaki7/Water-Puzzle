@@ -976,10 +976,32 @@ function loadLevel(level) {
 
 function updateHud() {
   levelValueEl.textContent = String(state.level);
-  coinValueEl.textContent = String(state.coins);
+  animateCoins(state.coins);
   setBadge("undoBadge", state.pw.undo);
   setBadge("hintBadge", state.pw.hint);
   setBadge("addBadge", state.pw.add);
+}
+
+// Juicy coin counter: ticks up/down toward the target instead of snapping,
+// and gives the coin pill a little bounce when the balance changes.
+let coinShown = null, coinTween = null;
+function animateCoins(target) {
+  if (coinShown === null) { coinShown = target; coinValueEl.textContent = String(target); return; }
+  if (coinShown === target) return;
+  const from = coinShown, delta = target - from, dur = Math.min(900, 250 + Math.abs(delta) * 6);
+  const t0 = performance.now();
+  const pill = document.getElementById("coinPill");
+  if (pill) { pill.classList.remove("coin-bounce"); void pill.offsetWidth; pill.classList.add("coin-bounce"); }
+  cancelAnimationFrame(coinTween);
+  const step = (now) => {
+    const p = Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - p, 3);
+    const val = Math.round(from + delta * eased);
+    coinValueEl.textContent = String(val);
+    if (p < 1) coinTween = requestAnimationFrame(step);
+    else coinShown = target;
+  };
+  coinTween = requestAnimationFrame(step);
 }
 function setBadge(id, n) {
   const el = document.getElementById(id);
