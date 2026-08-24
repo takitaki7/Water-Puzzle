@@ -968,7 +968,7 @@ function loadLevel(level) {
   state.optimal = null; state.moves = 0; state.history = [];
   state.selected = null; state.won = false; state.hint = null;
   pour = null; dyn = []; syncDyn();
-  hideWin(); updateHud();
+  hideWin(); updateHud(); popInHud();
   const token = ++optimalToken;
   const snap = state.tubes.map((t) => t.slice());
   setTimeout(() => { const path = solvePath(snap, 150000); if (token === optimalToken) state.optimal = path ? path.length : null; }, 30);
@@ -980,6 +980,20 @@ function updateHud() {
   setBadge("undoBadge", state.pw.undo);
   setBadge("hintBadge", state.pw.hint);
   setBadge("addBadge", state.pw.add);
+}
+
+// Staggered candy-shell bounce-in for the chrome around a fresh level —
+// the "everything hops onto the stage" feel of a top-tier match game.
+const POP_IN_IDS = ["coinPill", "levelPill", "settingsBtn", "undoBtn", "hintBtn", "addTubeBtn"];
+function popInHud() {
+  POP_IN_IDS.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove("pop-in");
+    void el.offsetWidth;
+    el.style.animationDelay = (i * 45) + "ms";
+    el.classList.add("pop-in");
+  });
 }
 
 // Juicy coin counter: ticks up/down toward the target instead of snapping,
@@ -1063,6 +1077,7 @@ function startConfetti() {
     g: 0.22 + Math.random() * 0.12, r: 4 + Math.random() * 5,
     rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.3,
     col: cols[(Math.random() * cols.length) | 0], life: 0,
+    round: Math.random() < 0.4, // a gumdrop-round mix among the candy-wrapper rects
   });
   cancelAnimationFrame(confettiRAF); confettiStep();
 }
@@ -1075,7 +1090,9 @@ function confettiStep() {
     if (c.y < h + 20) alive++;
     cctx.save(); cctx.translate(c.x, c.y); cctx.rotate(c.rot);
     cctx.fillStyle = c.col; cctx.globalAlpha = Math.max(0, 1 - c.life / 220);
-    cctx.fillRect(-c.r / 2, -c.r / 2, c.r, c.r * 1.6); cctx.restore();
+    if (c.round) { cctx.beginPath(); cctx.arc(0, 0, c.r * 0.68, 0, Math.PI * 2); cctx.fill(); }
+    else cctx.fillRect(-c.r / 2, -c.r / 2, c.r, c.r * 1.6);
+    cctx.restore();
   }
   if (alive > 0 && !overlay.classList.contains("hidden")) confettiRAF = requestAnimationFrame(confettiStep);
 }
