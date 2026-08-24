@@ -1,5 +1,5 @@
 /* ============================================================
-   PotionPop  —  a premium "Magic Sort!"-style potion-sorting game
+   PuruPop  —  a premium "Magic Sort!"-style potion-sorting game
    Bottle-shaped vessels with cork caps, tilt-to-pour physics,
    rippling liquid, a rewarded-ad power-up economy, coins,
    star ratings and confetti. Pure vanilla JS. No dependencies.
@@ -195,7 +195,7 @@ function newDyn(i) {
   const bubbles = [];
   const n = 3 + (i % 3);
   for (let k = 0; k < n; k++) bubbles.push({ x: Math.random(), r: 0.5 + Math.random(), sp: 0.15 + Math.random() * 0.25, ph: Math.random() });
-  return { lift: 0, wave: 0, phase: Math.random() * 6.28, completeAt: -1, completeColor: 0, sparks: [], pops: [], bubbles };
+  return { lift: 0, wave: 0, phase: Math.random() * 6.28, completeAt: -1, completeColor: 0, sparks: [], pops: [], bubbles, jellyAt: -1 };
 }
 const COMPLETE_MS = 850;
 
@@ -343,16 +343,34 @@ function xfPoint(px, py, xf) {
   return { x: xf.pivotX + (dx * c - dy * s) * xf.scale + xf.offX, y: xf.pivotY + (dx * s + dy * c) * xf.scale + xf.offY };
 }
 
+// "Purun" jelly squash-&-stretch — a quick springy wobble triggered on
+// pick-up and on landing a pour. Independent of tubeXf/xfPoint so pour
+// geometry (spout position, tilt) stays untouched.
+const JELLY_MS = 460;
+function jellyImpulse(idx, now) { if (dyn[idx]) dyn[idx].jellyAt = now; }
+function jellyScale(idx, now) {
+  const d = dyn[idx];
+  if (!d || d.jellyAt < 0) return { sx: 1, sy: 1 };
+  const jt = (now - d.jellyAt) / JELLY_MS;
+  if (jt >= 1) { d.jellyAt = -1; return { sx: 1, sy: 1 }; }
+  const decay = Math.exp(-4.4 * jt);
+  const osc = Math.sin(jt * Math.PI * 2.6) * decay * 0.10;
+  return { sx: 1 - osc, sy: 1 + osc };
+}
+
 /* ---------- draw one bottle ---------- */
 function drawTube(idx, now) {
   const L = LAYOUT, r = L.rects[idx], m = { ...L.m, wall: L.wall };
   const xf = tubeXf(idx, now);
+
+  const jelly = jellyScale(idx, now);
 
   ctx.save();
   ctx.translate(xf.offX, xf.offY);
   ctx.translate(xf.pivotX, xf.pivotY);
   ctx.rotate(xf.angle);
   ctx.scale(xf.scale, xf.scale);
+  ctx.scale(jelly.sx, jelly.sy);
   ctx.translate(-xf.pivotX, -xf.pivotY);
 
   const x = r.x, y = r.y, w = r.w;
@@ -634,7 +652,7 @@ function onTubeClick(idx) {
   state.hint = null;
   if (state.selected === null) {
     if (state.tubes[idx].length === 0) return;
-    state.selected = idx; sfx("pick"); return;
+    state.selected = idx; jellyImpulse(idx, performance.now()); sfx("pick"); return;
   }
   if (state.selected === idx) { state.selected = null; return; }
 
@@ -657,6 +675,7 @@ function finalizePour(now) {
   const to = pour.to, from = pour.from;
   pour = null;
   dyn[to].wave = 6;
+  jellyImpulse(to, now); jellyImpulse(from, now);
   let done = false;
   if (isTubeComplete(state.tubes[to])) { markComplete(to, now); done = true; }
   if (isTubeComplete(state.tubes[from])) { markComplete(from, now); done = true; }
@@ -677,7 +696,7 @@ function markComplete(idx, now) {
     sp: 0.75 + Math.random() * 1.0, r: 3.2 + Math.random() * 4.5,
     spin: Math.random() * 6.28, col: cols[k % cols.length],
   });
-  // "PotionPop" bubble burst: little bubbles that swell and pop.
+  // "PuruPop" bubble burst: little bubbles that swell and pop.
   d.pops = [];
   const m = 9;
   for (let k = 0; k < m; k++) d.pops.push({
@@ -1226,7 +1245,7 @@ window.addEventListener("resize", resize);
 window.addEventListener("load", resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
 
-window.PotionPop = {
+window.PuruPop = {
   state, layout: () => LAYOUT, click: onTubeClick, pouring: () => !!pour,
   legalMoves, applyPour, isSolved, boardKey, solvePath,
   useUndo, useHint, useAdd, openAd, grantAd, openStore, buyPowerup, openShop, buyInShop,
@@ -1235,7 +1254,8 @@ window.PotionPop = {
   audio: () => ({ ac: !!AC, state: AC && AC.state, bgm: bgmOn, step: bgmStep, soundOn, musicOn }),
   sfx,
 };
-window.WaterPuzzle = window.PotionPop; // legacy alias
+window.PotionPop = window.PuruPop; // legacy alias
+window.WaterPuzzle = window.PuruPop; // legacy alias
 
 loadPersisted();
 resize();
