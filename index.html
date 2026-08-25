@@ -33,7 +33,18 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20" />
+  <link rel="stylesheet" href="style.css?v=21" />
+
+  <!-- Optional analytics / error monitoring — inert until configured.
+       Fill in a real GA4 Measurement ID / Sentry DSN to turn these on;
+       leave blank and analytics.js makes zero network requests. -->
+  <script>
+    window.PURUPOP_CONFIG = {
+      gaId: "",       // e.g. "G-XXXXXXXXXX" from Google Analytics
+      sentryDsn: "",  // e.g. "https://xxxx@xxxx.ingest.sentry.io/xxxx" from Sentry
+    };
+  </script>
+  <script src="analytics.js?v=1" defer></script>
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -107,6 +118,11 @@
       <button class="row-btn" id="soundToggle"><span>Sound effects</span><span class="toggle on" id="soundToggleSwitch"><span class="toggle-knob"></span></span></button>
       <button class="row-btn" id="musicToggle"><span>Music</span><span class="toggle on" id="musicToggleSwitch"><span class="toggle-knob"></span></span></button>
       <button class="row-btn" id="restartLevelBtn"><span>Restart level</span><span class="row-ic">⟳</span></button>
+      <div class="legal-links">
+        <a href="terms.html" target="_blank" rel="noopener">Terms</a><span>·</span>
+        <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span>·</span>
+        <a href="tokushoho.html" target="_blank" rel="noopener">特商法表記</a>
+      </div>
       <button class="btn primary wide" id="closeSettings">Close</button>
     </div>
   </div>
@@ -173,6 +189,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=20"></script>
+  <script src="game.js?v=21"></script>
 </body>
 </html>

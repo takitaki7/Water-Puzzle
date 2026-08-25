@@ -331,6 +331,12 @@ body {
   font-weight: 800; font-size: 16px; cursor: pointer;
 }
 .row-ic { font-size: 18px; }
+.legal-links {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin: 4px 0 14px; font-size: 12px; color: var(--text-dim);
+}
+.legal-links a { color: var(--text-dim); text-decoration: underline; text-underline-offset: 2px; }
+.legal-links a:active { color: var(--text); }
 .toggle {
   position: relative; flex: 0 0 auto;
   width: 46px; height: 26px; border-radius: 999px;

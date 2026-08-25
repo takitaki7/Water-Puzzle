@@ -95,6 +95,20 @@ GitHub リポジトリ名を `Water-Puzzle` → `PotionPop` → `PuruPop` と変
 - `manifest.webmanifest` とアイコン（`icon-192/512.png`, `apple-touch-icon.png`, `favicon.svg`）を同梱。スマホの **「ホーム画面に追加」** でアプリのように起動できます（全画面 standalone）。
 - `og-image.png` と OG/Twitter メタを設定済みで、リンク共有時にカード表示されます。ドメイン確定後、より確実なプレビューにするなら `index.html` の `og:image` / `twitter:image` を **絶対URL** に置き換えてください。
 
+## 公開前チェックリスト（法務・運用）
+
+⚙️ 設定モーダルの下部から **Terms / Privacy / 特商法表記** の3ページにリンクしています。いずれも**テンプレート**（`[事業者名]` のようなプレースホルダー入り）なので、公開前に必ず実在の情報へ差し替えてください:
+
+| ファイル | 内容 | 必須になるタイミング |
+| --- | --- | --- |
+| `terms.html` | 利用規約 | 公開前に推奨 |
+| `privacy.html` | プライバシーポリシー | 公開前に推奨（広告/分析を有効化したら要更新） |
+| `tokushoho.html` | 特定商取引法に基づく表記 | **実際の課金（コイン購入等）を有効化する前に必須**（日本の消費者向け） |
+
+分析・エラー監視は `index.html` 冒頭の `window.PURUPOP_CONFIG` に GA4 の測定ID / Sentry の DSN を入れるだけで有効化されます（`analytics.js`）。空欄のままなら通信は一切発生しません。いずれも Google Analytics / Sentry 側でアカウントを作り、IDを発行するのはご自身で行う必要があります（Claude からは作成できません）。
+
+セーブデータは現状すべて `localStorage`（端末内のみ）です。機種変更・ブラウザ変更で引き継ぎたい場合はクラウド保存（Firebase / Supabase 等）の追加実装が別途必要です。
+
 ## ファイル構成
 
 | ファイル | 役割 |
@@ -102,6 +116,8 @@ GitHub リポジトリ名を `Water-Puzzle` → `PotionPop` → `PuruPop` と変
 | `index.html` | 画面構造（HUD・盤面キャンバス・クリア/設定/広告モーダル） |
 | `style.css` | UI スタイル・星空背景・アニメーション |
 | `game.js` | ゲームロジック＋Canvas ボトルレンダラー（生成・注ぎ判定・BFSソルバー・傾き注ぎ・気泡・パワーアップ経済・リワード広告・コイン・紙吹雪・効果音） |
+| `analytics.js` | GA4 / Sentry の任意連携（未設定なら無害・無通信） |
+| `terms.html` / `privacy.html` / `tokushoho.html` | 利用規約・プライバシーポリシー・特定商取引法に基づく表記（要・実情報への差し替え） |
 
 ## ライセンス
 

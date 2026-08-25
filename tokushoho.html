@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>特定商取引法に基づく表記 — PuruPop</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-top: #33196b; --bg-mid: #22124e; --bg-bot: #180b38;
+    --text: #fff6fb; --text-dim: #c7b3e6; --accent: #ff4fb0;
+    --card: rgba(255,255,255,0.06); --stroke: rgba(255,255,255,0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
+    min-height: 100vh;
+    line-height: 1.7;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 22px 80px; }
+  a.back { color: var(--accent); text-decoration: none; font-weight: 700; }
+  a.back:hover { text-decoration: underline; }
+  h1 { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 26px; margin: 22px 0 6px; }
+  .updated { color: var(--text-dim); font-size: 14px; margin-bottom: 20px; }
+  .warn {
+    background: rgba(255,56,96,0.14); border: 1.5px solid rgba(255,56,96,0.5);
+    border-radius: 14px; padding: 16px 18px; margin-bottom: 28px; font-size: 14.5px;
+  }
+  .warn b { color: #ff8fa3; }
+  table { width: 100%; border-collapse: collapse; }
+  tr { border-bottom: 1px solid var(--stroke); }
+  th, td { text-align: left; padding: 14px 8px; vertical-align: top; font-size: 15px; }
+  th { width: 34%; color: #ffd34e; font-weight: 700; white-space: nowrap; }
+  td { color: #e9def0; }
+  .placeholder { color: #ffd34e; font-weight: 700; }
+  footer { margin-top: 40px; color: var(--text-dim); font-size: 13px; }
+  footer a { color: var(--text-dim); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">← PuruPop に戻る</a>
+    <h1>特定商取引法に基づく表記</h1>
+    <div class="updated">最終更新日：<span class="placeholder">[日付を入力]</span></div>
+
+    <div class="warn">
+      ⚠️ <b>これはテンプレートです。</b> 現時点で PuruPop
+      は実際の決済（課金）を行っておらず（コイン獲得・パワーアップ購入・広告視聴はすべてシミュレーションです）、
+      このページは<b>実際の課金機能を有効化する前に</b>、下記の
+      <span class="placeholder">[プレースホルダー]</span> をすべて実在の事業者情報に置き換えたうえで公開してください。
+      内容に不安がある場合は、行政書士・弁護士等の専門家に確認することをおすすめします。
+    </div>
+
+    <table>
+      <tr><th>販売事業者</th><td><span class="placeholder">[事業者名（個人事業主の場合は氏名）]</span></td></tr>
+      <tr><th>運営統括責任者</th><td><span class="placeholder">[運営責任者氏名]</span></td></tr>
+      <tr><th>所在地</th><td><span class="placeholder">[住所]</span>（請求があった場合には遅滞なく開示します）</td></tr>
+      <tr><th>連絡先</th><td>メール：<span class="placeholder">[連絡先メールアドレス]</span><br>電話番号：<span class="placeholder">[電話番号（請求時開示可）]</span></td></tr>
+      <tr><th>販売価格</th><td>各コインパッケージ・パワーアップの価格はアプリ内の購入画面に表示します（すべて税込）。</td></tr>
+      <tr><th>商品代金以外の必要料金</th><td>なし（通信費等はお客様のご負担となります）</td></tr>
+      <tr><th>お支払い方法</th><td><span class="placeholder">[例：クレジットカード決済（Stripe）／各種キャリア決済 等]</span></td></tr>
+      <tr><th>お支払い時期</th><td>購入手続き完了時に決済されます。</td></tr>
+      <tr><th>商品の引き渡し時期</th><td>決済完了後、直ちにアプリ内アカウント（ブラウザ内保存データ）に反映されます。</td></tr>
+      <tr><th>返品・キャンセルについて</th><td>デジタルコンテンツの性質上、購入後のキャンセル・返金は原則としてお受けできません。決済の不具合等やむを得ない事情がある場合は、上記連絡先までご相談ください。</td></tr>
+      <tr><th>動作環境</th><td>最新版の主要ブラウザ（Chrome、Safari、Edge、Firefox 等）でご利用いただけます。</td></tr>
+    </table>
+
+    <footer>
+      本ページはテンプレートであり法的助言ではありません。実際に課金機能を提供する場合は、
+      特定商取引法第11条（通信販売についての広告）の要件を満たすよう、必ず内容を確認・更新してください。
+      関連ページ：<a href="terms.html">Terms of Service</a> ·
+      <a href="privacy.html">Privacy Policy</a>
+    </footer>
+  </div>
+</body>
+</html>

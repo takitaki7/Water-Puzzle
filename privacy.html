@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Privacy Policy — PuruPop</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-top: #33196b; --bg-mid: #22124e; --bg-bot: #180b38;
+    --text: #fff6fb; --text-dim: #c7b3e6; --accent: #ff4fb0;
+    --card: rgba(255,255,255,0.06); --stroke: rgba(255,255,255,0.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 46%, var(--bg-bot) 100%);
+    min-height: 100vh;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 40px 22px 80px; }
+  a.back { color: var(--accent); text-decoration: none; font-weight: 700; }
+  a.back:hover { text-decoration: underline; }
+  h1 { font-family: "Baloo 2", sans-serif; font-weight: 800; font-size: 30px; margin: 22px 0 6px; }
+  .updated { color: var(--text-dim); font-size: 14px; margin-bottom: 30px; }
+  h2 { font-family: "Baloo 2", sans-serif; font-weight: 700; font-size: 19px; margin: 34px 0 10px; color: #ffd34e; }
+  p, li { color: #e9def0; font-size: 15px; }
+  ul { padding-left: 22px; }
+  .card { background: var(--card); border: 1px solid var(--stroke); border-radius: 16px; padding: 22px 24px; margin-top: 10px; }
+  .placeholder { color: #ffd34e; font-weight: 700; }
+  .status { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; margin-left: 8px; }
+  .status.off { background: rgba(52,211,153,.18); color: #34d399; }
+  .status.pending { background: rgba(255,211,78,.18); color: #ffd34e; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  td, th { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--stroke); font-size: 14px; }
+  th { color: var(--text-dim); font-weight: 700; }
+  footer { margin-top: 50px; color: var(--text-dim); font-size: 13px; }
+  footer a { color: var(--text-dim); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="index.html">← Back to PuruPop</a>
+    <h1>Privacy Policy</h1>
+    <div class="updated">Last updated: <span class="placeholder">[DATE]</span></div>
+
+    <div class="card">
+      <p>PuruPop ("we", "the Game") is designed to collect as little data as possible. This page explains exactly what is, and isn't, collected today, and what would change if optional features below are switched on.</p>
+    </div>
+
+    <h2>What we store on your device</h2>
+    <p>Your level, coin balance, power-up counts, and sound/music preferences are saved using your browser's <code>localStorage</code>. This data:</p>
+    <ul>
+      <li>Never leaves your device — it is not sent to any server.</li>
+      <li>Is not linked to your identity, an account, or an email address (the Game has no account system).</li>
+      <li>Can be cleared at any time by clearing your browser's site data.</li>
+    </ul>
+
+    <h2>Third-party resources loaded by the page</h2>
+    <table>
+      <tr><th>Service</th><th>What it sees</th><th>Status</th></tr>
+      <tr><td>Google Fonts</td><td>Your IP address, to serve the "Baloo 2" typeface</td><td><span class="status off">Always on</span></td></tr>
+      <tr><td>Google Analytics</td><td>Anonymized usage stats (pages viewed, session length)</td><td><span class="status pending">Off unless configured</span></td></tr>
+      <tr><td>Sentry (error monitoring)</td><td>Technical error reports (no gameplay data)</td><td><span class="status pending">Off unless configured</span></td></tr>
+    </table>
+    <p style="margin-top:10px">Analytics and error monitoring are wired into the Game's code but ship <strong>inactive by default</strong> — see <code>analytics.js</code>. They only start making network requests once the site operator fills in a real Measurement ID / DSN. If enabled, this section will be updated to reflect what's actually collected before it goes live.</p>
+
+    <h2>Advertising</h2>
+    <p>The Game currently simulates a rewarded-ad flow entirely client-side, for demonstration — no real ad network is called and no advertising data is collected. If a real ad SDK is integrated in the future, this policy will be updated to name the network and describe what it collects before that change ships.</p>
+
+    <h2>Children's privacy</h2>
+    <p>The Game is designed to be enjoyable for a general audience including children, and intentionally collects no personal information from anyone, including children. If real advertising is added in the future, it will be configured for non-personalized/contextual ads where the audience may include children, consistent with applicable regulations (e.g. COPPA, Japan's APPI).</p>
+
+    <h2>Your choices</h2>
+    <p>You can clear all locally-stored data at any time via your browser's site settings. If analytics are enabled in the future, standard "Do Not Track" / consent controls will be respected where required by law.</p>
+
+    <h2>Changes to this policy</h2>
+    <p>We may update this policy as the Game's features change. Material changes (e.g. turning on analytics or advertising) will be reflected here before they take effect.</p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy can be sent to <span class="placeholder">[CONTACT EMAIL]</span>.</p>
+
+    <footer>
+      This is a template and does not constitute legal advice. Replace the
+      <span class="placeholder">[bracketed]</span> placeholders and review
+      with a legal professional, especially before enabling analytics,
+      advertising, or payments for users in regions with specific
+      requirements (GDPR, APPI, CCPA, etc.).
+      See also <a href="terms.html">Terms of Service</a> ·
+      <a href="tokushoho.html">特定商取引法に基づく表記</a>.
+    </footer>
+  </div>
+</body>
+</html>
