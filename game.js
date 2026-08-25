@@ -21,11 +21,20 @@ const PALETTE = [
   { l: "#bcacf9", b: "#8b5cf6", d: "#5b2fc0" }, // violet
   { l: "#6fecfb", b: "#06b6d4", d: "#0a7f96" }, // cyan
   { l: "#ffa7b6", b: "#f43f5e", d: "#b41436" }, // rose
+  { l: "#f6a6ff", b: "#c026d3", d: "#7a0d94" }, // magenta
 ];
 
+// Difficulty ramps by adding colors (1 every ~2 levels) until every hue in
+// the palette is in play (~level 21); past that the board never gets any
+// bigger — 13 clearly-distinguishable hues is already close to the limit
+// for a color-matching game, and each extra color also costs real
+// generation time (see generateLevel) — so difficulty keeps climbing only
+// through fresh random layouts at that max width from then on, which is
+// expected: it's the same "ramp then endless-at-max" shape every
+// level-based match game uses; levels themselves never stop counting up.
 function levelConfig(level) {
   const maxColors = PALETTE.length - 1;
-  const colors = Math.min(3 + Math.floor((level - 1) / 1.5), maxColors);
+  const colors = Math.min(3 + Math.floor((level - 1) / 2), maxColors);
   return { colors, emptyTubes: 2 };
 }
 
@@ -47,6 +56,15 @@ const state = {
 /* ============================================================
    Logic: generation, solver, pour rules
    ============================================================ */
+// Verifying solvability via solvePath (BFS, shortest-first) rather than an
+// unguided DFS reachability search is the key perf choice here: BFS finds
+// a solution (if one exists within the cap) after exploring only the
+// states within that many moves of the start, while an unguided DFS can
+// wander arbitrarily deep before backtracking onto a nearby solution —
+// at 12+ colors that made board generation take several *seconds*, and
+// occasionally tens of seconds, of a fully blocked main thread. BFS also
+// hands back the optimal move count for free, so there's no need for a
+// second, separate solve afterwards.
 function generateLevel(level) {
   const { colors, emptyTubes } = levelConfig(level);
   for (let attempt = 0; attempt < 80; attempt++) {
@@ -57,33 +75,14 @@ function generateLevel(level) {
     for (let c = 0; c < colors; c++) tubes.push(pool.slice(c * CAPACITY, c * CAPACITY + CAPACITY));
     for (let e = 0; e < emptyTubes; e++) tubes.push([]);
     if (isSolved(tubes)) continue;
-    if (!isSolvable(tubes)) continue;
-    return tubes;
+    const path = solvePath(tubes, 300000);
+    if (!path) continue;
+    return { tubes, optimal: path.length };
   }
   const tubes = [];
   for (let c = 1; c <= colors; c++) tubes.push([c, c, c, c]);
   for (let e = 0; e < emptyTubes; e++) tubes.push([]);
-  return tubes;
-}
-
-function isSolvable(start) {
-  const seen = new Set();
-  const stack = [start.map((t) => t.slice())];
-  let expanded = 0;
-  while (stack.length) {
-    if (++expanded > 2_000_000) return false;
-    const cur = stack.pop();
-    if (isSolved(cur)) return true;
-    const k = boardKey(cur);
-    if (seen.has(k)) continue;
-    seen.add(k);
-    for (const mv of legalMoves(cur)) {
-      const nx = cur.map((t) => t.slice());
-      applyPour(nx, mv.from, mv.to);
-      stack.push(nx);
-    }
-  }
-  return false;
+  return { tubes, optimal: 0 };
 }
 
 function shuffle(arr) {
@@ -978,18 +977,28 @@ function buyInShop(kind) {
 /* ============================================================
    Levels
    ============================================================ */
-let optimalToken = 0;
 function newLevel(advance) { if (advance) state.level++; loadLevel(state.level); }
+function showLevelLoading(on) {
+  const el = document.getElementById("levelLoading");
+  if (el) el.classList.toggle("hidden", !on);
+}
 function loadLevel(level) {
   state.level = level;
-  state.tubes = generateLevel(level);
-  state.optimal = null; state.moves = 0; state.history = [];
-  state.selected = null; state.won = false; state.hint = null;
-  pour = null; dyn = []; syncDyn();
-  hideWin(); updateHud(); popInHud();
-  const token = ++optimalToken;
-  const snap = state.tubes.map((t) => t.slice());
-  setTimeout(() => { const path = solvePath(snap, 150000); if (token === optimalToken) state.optimal = path ? path.length : null; }, 30);
+  showLevelLoading(true);
+  // High levels deal many more colors, and finding a guaranteed-solvable
+  // shuffle for them is a real (if brief) search — double-rAF guarantees
+  // the loading UI actually paints a frame before that blocking search
+  // runs, instead of the tab just freezing with no feedback.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const generated = generateLevel(level);
+    state.tubes = generated.tubes;
+    state.optimal = generated.optimal || null;
+    state.moves = 0; state.history = [];
+    state.selected = null; state.won = false; state.hint = null;
+    pour = null; dyn = []; syncDyn();
+    hideWin(); updateHud(); popInHud();
+    showLevelLoading(false);
+  }));
 }
 
 function updateHud() {

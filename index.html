@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=18" />
+  <link rel="stylesheet" href="style.css?v=20" />
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -62,6 +62,10 @@
     <main class="board-wrap">
       <div id="board" class="board" aria-label="Bottles">
         <canvas id="game"></canvas>
+      </div>
+      <div id="levelLoading" class="level-loading hidden" aria-hidden="true">
+        <span class="level-loading-spin"></span>
+        <span>Mixing potions…</span>
       </div>
     </main>
 
@@ -169,6 +173,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=18"></script>
+  <script src="game.js?v=20"></script>
 </body>
 </html>
