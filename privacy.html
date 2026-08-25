@@ -67,17 +67,32 @@
       <tr><td>Google Fonts</td><td>Your IP address, to serve the "Baloo 2" typeface</td><td><span class="status off">Always on</span></td></tr>
       <tr><td>Google Analytics</td><td>Anonymized usage stats (pages viewed, session length)</td><td><span class="status pending">Off unless configured</span></td></tr>
       <tr><td>Sentry (error monitoring)</td><td>Technical error reports (no gameplay data)</td><td><span class="status pending">Off unless configured</span></td></tr>
+      <tr><td>Google AdMob</td><td>Advertising ID, IP address, ad interactions</td><td><span class="status pending">Native app builds only</span></td></tr>
     </table>
     <p style="margin-top:10px">Analytics and error monitoring are wired into the Game's code but ship <strong>inactive by default</strong> — see <code>analytics.js</code>. They only start making network requests once the site operator fills in a real Measurement ID / DSN. If enabled, this section will be updated to reflect what's actually collected before it goes live.</p>
 
     <h2>Advertising</h2>
-    <p>The Game currently simulates a rewarded-ad flow entirely client-side, for demonstration — no real ad network is called and no advertising data is collected. If a real ad SDK is integrated in the future, this policy will be updated to name the network and describe what it collects before that change ships.</p>
+    <p>The Game offers optional rewarded video ads: you may choose to watch a short video to earn a power-up. Watching is always voluntary — you can decline and keep playing.</p>
+    <ul>
+      <li><strong>In the browser version</strong>, the rewarded-ad flow is simulated entirely on your device. No ad network is contacted and no advertising data is collected.</li>
+      <li><strong>In native app builds</strong>, ads are served by <strong>Google AdMob</strong>. AdMob may collect device identifiers (such as your advertising ID), IP address, and general ad-interaction data to deliver and measure ads. This data is handled under <a class="back" href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">Google's Privacy &amp; Terms</a>.</li>
+    </ul>
+    <p>Where required by law, you will be asked for consent before personalized ads are shown, and you may choose non-personalized ads instead. You can reset or delete your advertising ID at any time through your device's settings.</p>
+
+    <h2>Purchases</h2>
+    <p>The Game awards in-game coins for clearing levels. Spending those coins is not yet available ("Coming soon"), and <strong>no real-money purchases are currently offered</strong>. We therefore collect no payment information of any kind. If purchases launch in the future, payment processing will be handled by a third-party payment provider (or the relevant app store) and this policy will be updated to describe that before the change ships.</p>
 
     <h2>Children's privacy</h2>
-    <p>The Game is designed to be enjoyable for a general audience including children, and intentionally collects no personal information from anyone, including children. If real advertising is added in the future, it will be configured for non-personalized/contextual ads where the audience may include children, consistent with applicable regulations (e.g. COPPA, Japan's APPI).</p>
+    <p>The Game is suitable for a general audience, including children, and collects no personal information directly from anyone. We do not knowingly collect personal information from children under 13 (or the equivalent minimum age in your jurisdiction). Where the audience may include children, advertising is configured to request non-personalized/contextual ads only, consistent with applicable regulations such as COPPA, the GDPR, and Japan's APPI.</p>
 
-    <h2>Your choices</h2>
-    <p>You can clear all locally-stored data at any time via your browser's site settings. If analytics are enabled in the future, standard "Do Not Track" / consent controls will be respected where required by law.</p>
+    <h2>Your rights and choices</h2>
+    <ul>
+      <li><strong>Local data:</strong> clear all locally-stored progress at any time via your browser's or device's site/app settings.</li>
+      <li><strong>Advertising:</strong> reset or delete your advertising ID, or opt out of ad personalization, in your device settings.</li>
+      <li><strong>GDPR (EEA/UK):</strong> where applicable, you have the right to access, correct, delete, or restrict processing of your personal data, and to lodge a complaint with your local supervisory authority.</li>
+      <li><strong>CCPA/CPRA (California):</strong> we do not sell or share personal information as those terms are defined under California law.</li>
+    </ul>
+    <p>Because the Game has no account system, requests relating to specific data may require you to identify the data in question. Contact us using the address below.</p>
 
     <h2>Changes to this policy</h2>
     <p>We may update this policy as the Game's features change. Material changes (e.g. turning on analytics or advertising) will be reflected here before they take effect.</p>
@@ -91,8 +106,7 @@
       with a legal professional, especially before enabling analytics,
       advertising, or payments for users in regions with specific
       requirements (GDPR, APPI, CCPA, etc.).
-      See also <a href="terms.html">Terms of Service</a> ·
-      <a href="tokushoho.html">特定商取引法に基づく表記</a>.
+      See also <a href="terms.html">Terms of Service</a>.
     </footer>
   </div>
 </body>

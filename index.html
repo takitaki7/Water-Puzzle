@@ -33,7 +33,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=21" />
+  <link rel="stylesheet" href="style.css?v=22" />
 
   <!-- Optional analytics / error monitoring — inert until configured.
        Fill in a real GA4 Measurement ID / Sentry DSN to turn these on;
@@ -42,9 +42,23 @@
     window.PURUPOP_CONFIG = {
       gaId: "",       // e.g. "G-XXXXXXXXXX" from Google Analytics
       sentryDsn: "",  // e.g. "https://xxxx@xxxx.ingest.sentry.io/xxxx" from Sentry
+
+      // Rewarded ads. NOTE: AdMob only serves native (iOS/Android)
+      // builds — in a browser this stays inactive and the game falls
+      // back to its built-in simulated ad. See ads.js and the README.
+      ads: {
+        provider: "",     // "admob" once wrapped natively; "" = simulated
+        testMode: false,  // true → Google's public test ad unit
+        rewardedUnitIds: {
+          undo: "",       // e.g. "ca-app-pub-XXXXXXXX/XXXXXXXX"
+          hint: "",
+          add: "",
+        },
+      },
     };
   </script>
   <script src="analytics.js?v=1" defer></script>
+  <script src="ads.js?v=1"></script>
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -118,10 +132,12 @@
       <button class="row-btn" id="soundToggle"><span>Sound effects</span><span class="toggle on" id="soundToggleSwitch"><span class="toggle-knob"></span></span></button>
       <button class="row-btn" id="musicToggle"><span>Music</span><span class="toggle on" id="musicToggleSwitch"><span class="toggle-knob"></span></span></button>
       <button class="row-btn" id="restartLevelBtn"><span>Restart level</span><span class="row-ic">⟳</span></button>
+      <!-- tokushoho.html (Japan's Act on Specified Commercial Transactions
+           notice) is intentionally not linked while purchases are off; it
+           only becomes legally required once real payments ship. -->
       <div class="legal-links">
         <a href="terms.html" target="_blank" rel="noopener">Terms</a><span>·</span>
-        <a href="privacy.html" target="_blank" rel="noopener">Privacy</a><span>·</span>
-        <a href="tokushoho.html" target="_blank" rel="noopener">特商法表記</a>
+        <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>
       </div>
       <button class="btn primary wide" id="closeSettings">Close</button>
     </div>
@@ -133,6 +149,7 @@
       <button class="ad-x" id="shopClose" aria-label="Close">✕</button>
       <h3 class="modal-title">Shop</h3>
       <div class="store-balance">Balance <span class="coin xs"><span class="coin-star">★</span></span> <b id="shopCoins">0</b></div>
+      <div class="soon-banner" id="shopSoonBanner">🚧 Spending coins is coming soon — keep earning, your balance is saved.</div>
       <div class="shop-list">
         <div class="shop-item">
           <span class="shop-ic undo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h11a5 5 0 0 1 0 10H9"/><path d="M8 5 4 9l4 4"/></svg></span>
@@ -166,7 +183,7 @@
         </button>
         <button class="store-opt buy" id="storeBuy">
           <span class="so-ic"><span class="coin xs"><span class="coin-star">★</span></span></span>
-          <span class="so-txt"><b id="storeBuyPrice">Buy · 80</b><small>+1</small></span>
+          <span class="so-txt"><b id="storeBuyPrice">Buy · 80</b><small id="storeBuyNote">+1</small></span>
         </button>
       </div>
       <div class="store-balance">Balance <span class="coin xs"><span class="coin-star">★</span></span> <b id="storeCoins">0</b></div>
@@ -189,6 +206,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=21"></script>
+  <script src="game.js?v=22"></script>
 </body>
 </html>

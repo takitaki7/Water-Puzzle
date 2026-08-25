@@ -95,17 +95,42 @@ GitHub リポジトリ名を `Water-Puzzle` → `PotionPop` → `PuruPop` と変
 - `manifest.webmanifest` とアイコン（`icon-192/512.png`, `apple-touch-icon.png`, `favicon.svg`）を同梱。スマホの **「ホーム画面に追加」** でアプリのように起動できます（全画面 standalone）。
 - `og-image.png` と OG/Twitter メタを設定済みで、リンク共有時にカード表示されます。ドメイン確定後、より確実なプレビューにするなら `index.html` の `og:image` / `twitter:image` を **絶対URL** に置き換えてください。
 
+## マネタイズ（現在の状態）
+
+| 機能 | 状態 |
+| --- | --- |
+| **リワード広告** | 配線済み。ネイティブビルドで AdMob を設定すれば即有効（下記） |
+| **コイン購入** | **準備中（Coming soon 表示）**。コイン獲得は動作、消費のみ停止中 |
+
+### リワード広告（AdMob）
+
+⚠️ **AdMob はネイティブアプリ（iOS / Android）専用**で、ブラウザで開く Web ページには広告を配信できません。Web 版でリワード広告を出したい場合は Google Ad Manager が該当製品になります。
+
+そのためゲーム側は広告ネットワークを直接呼ばず、`ads.js` の `PuruPopAds.showRewarded(kind)` 経由で「報酬を得たか否か」だけを受け取る作りにしてあります。プロバイダ未設定なら従来どおり内蔵のシミュレーション広告にフォールバックするので、Web 版でも報酬フローはそのまま遊べます。
+
+AdMob を有効化する手順:
+
+1. Capacitor 等でネイティブ化し、`@capacitor-community/admob` を導入する。
+2. AdMob 管理画面でリワード広告ユニットを作成し、ユニットIDを取得する。
+3. `index.html` の `window.PURUPOP_CONFIG.ads` に `provider: "admob"` と各ユニットIDを設定する。動作確認だけしたい場合は `testMode: true` で Google のテスト広告が出ます。
+
+AdMob アカウントの作成とユニットID発行はご自身で行う必要があります（Claude からは発行できません）。
+
+### コイン購入を有効化するとき
+
+`game.js` の `PURCHASES_ENABLED` を `true` にすると、Shop の「Coming soon」バナーと各購入ボタンのロックが外れます。ただし現状のコイン消費はクライアント側で完結しているだけで、**実際の決済処理（Stripe 等）は未実装**です。有料販売を始める場合は、決済連携に加えて下記の法務対応が必要になります。
+
 ## 公開前チェックリスト（法務・運用）
 
-⚙️ 設定モーダルの下部から **Terms / Privacy / 特商法表記** の3ページにリンクしています。いずれも**テンプレート**（`[事業者名]` のようなプレースホルダー入り）なので、公開前に必ず実在の情報へ差し替えてください:
+⚙️ 設定モーダルの下部から **Terms / Privacy** にリンクしています。いずれも**テンプレート**（`[OPERATOR NAME]` のようなプレースホルダー入り）なので、公開前に必ず実在の情報へ差し替えてください:
 
 | ファイル | 内容 | 必須になるタイミング |
 | --- | --- | --- |
-| `terms.html` | 利用規約 | 公開前に推奨 |
-| `privacy.html` | プライバシーポリシー | 公開前に推奨（広告/分析を有効化したら要更新） |
-| `tokushoho.html` | 特定商取引法に基づく表記 | **実際の課金（コイン購入等）を有効化する前に必須**（日本の消費者向け） |
+| `terms.html` | 利用規約（英語） | 公開前に推奨 |
+| `privacy.html` | プライバシーポリシー（英語・GDPR / CCPA / COPPA / AdMob 記載込み） | 公開前に推奨。**AdMob を有効化する場合は必須**（広告SDKのデータ収集を明示する義務があるため） |
+| `tokushoho.html` | 特定商取引法に基づく表記（日本語） | **実際の課金を有効化する前に必須**（日本の消費者向け）。現在は課金停止中のため UI からはリンクしていません |
 
-分析・エラー監視は `index.html` 冒頭の `window.PURUPOP_CONFIG` に GA4 の測定ID / Sentry の DSN を入れるだけで有効化されます（`analytics.js`）。空欄のままなら通信は一切発生しません。いずれも Google Analytics / Sentry 側でアカウントを作り、IDを発行するのはご自身で行う必要があります（Claude からは作成できません）。
+分析・エラー監視は `index.html` 冒頭の `window.PURUPOP_CONFIG` に GA4 の測定ID / Sentry の DSN を入れるだけで有効化されます（`analytics.js`）。空欄のままなら通信は一切発生しません。
 
 セーブデータは現状すべて `localStorage`（端末内のみ）です。機種変更・ブラウザ変更で引き継ぎたい場合はクラウド保存（Firebase / Supabase 等）の追加実装が別途必要です。
 
@@ -117,6 +142,7 @@ GitHub リポジトリ名を `Water-Puzzle` → `PotionPop` → `PuruPop` と変
 | `style.css` | UI スタイル・星空背景・アニメーション |
 | `game.js` | ゲームロジック＋Canvas ボトルレンダラー（生成・注ぎ判定・BFSソルバー・傾き注ぎ・気泡・パワーアップ経済・リワード広告・コイン・紙吹雪・効果音） |
 | `analytics.js` | GA4 / Sentry の任意連携（未設定なら無害・無通信） |
+| `ads.js` | リワード広告アダプタ（AdMob／未設定ならシミュレーションへフォールバック） |
 | `terms.html` / `privacy.html` / `tokushoho.html` | 利用規約・プライバシーポリシー・特定商取引法に基づく表記（要・実情報への差し替え） |
 
 ## ライセンス

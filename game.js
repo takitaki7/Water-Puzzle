@@ -810,6 +810,13 @@ function pushHistory() {
 // Coin prices for buying a power-up when you're out.
 const PRICE = { undo: 60, hint: 90, add: 140 };
 
+// Spending coins is switched off until the storefront is live: coins are
+// still awarded for clearing levels (so balances keep building and are
+// worth something on launch day), but every "spend" surface shows a
+// Coming soon state instead of taking the coins. Flip this to true once
+// purchases actually ship.
+const PURCHASES_ENABLED = false;
+
 // Undo
 function useUndo() {
   if (state.won || pour) return;
@@ -879,6 +886,20 @@ const AD_INFO = {
 };
 let adKind = null, adTimer = null;
 function openAd(kind) {
+  // A real ad network (only reachable in a native build — see ads.js)
+  // renders its own full-screen creative, so the in-app ad card is
+  // skipped entirely and we just honour the reward it reports back.
+  const ads = window.PuruPopAds;
+  if (ads && ads.available()) {
+    ads.showRewarded(kind).then((earned) => {
+      if (earned) grantPowerup(kind);
+      else if (earned === null) openSimulatedAd(kind); // provider bailed
+    });
+    return;
+  }
+  openSimulatedAd(kind);
+}
+function openSimulatedAd(kind) {
   adKind = kind;
   const info = AD_INFO[kind];
   document.getElementById("adIcon").innerHTML = ICON_SVG[kind];
@@ -929,17 +950,26 @@ function openStore(kind) {
   storeIconEl.innerHTML = ICON_SVG[kind];
   storeIconEl.className = "store-icon " + kind;
   document.getElementById("storeTitle").textContent = info.title;
-  document.getElementById("storeBuyPrice").textContent = "Buy · " + price;
   document.getElementById("storeCoins").textContent = String(state.coins);
   const buyBtn = document.getElementById("storeBuy");
-  buyBtn.classList.toggle("disabled", state.coins < price);
+  const buyPrice = document.getElementById("storeBuyPrice");
+  const buyNote = document.getElementById("storeBuyNote");
+  if (PURCHASES_ENABLED) {
+    buyPrice.textContent = "Buy · " + price;
+    buyNote.textContent = "+1";
+    buyBtn.classList.toggle("disabled", state.coins < price);
+  } else {
+    buyPrice.textContent = "Buy · " + price;
+    buyNote.textContent = "Coming soon";
+    buyBtn.classList.add("disabled");
+  }
   storeModal.classList.remove("hidden");
 }
 function closeStore() { storeModal.classList.add("hidden"); storeKind = null; }
 function buyPowerup() {
   const kind = storeKind; if (!kind) return;
   const price = PRICE[kind];
-  if (state.coins < price) {
+  if (!PURCHASES_ENABLED || state.coins < price) {
     const buyBtn = document.getElementById("storeBuy");
     buyBtn.classList.remove("shake"); void buyBtn.offsetWidth; buyBtn.classList.add("shake");
     return;
@@ -955,16 +985,18 @@ function openShop() { refreshShop(); shopModal.classList.remove("hidden"); }
 function closeShop() { shopModal.classList.add("hidden"); }
 function refreshShop() {
   document.getElementById("shopCoins").textContent = String(state.coins);
+  const banner = document.getElementById("shopSoonBanner");
+  if (banner) banner.classList.toggle("hidden", PURCHASES_ENABLED);
   const map = [["undo", "ownUndo", "priceUndo", "buyUndo"], ["hint", "ownHint", "priceHint", "buyHint"], ["add", "ownAdd", "priceAdd", "buyAdd"]];
   for (const [k, ownId, priceId, buyId] of map) {
     document.getElementById(ownId).textContent = String(state.pw[k]);
     document.getElementById(priceId).textContent = String(PRICE[k]);
-    document.getElementById(buyId).classList.toggle("disabled", state.coins < PRICE[k]);
+    document.getElementById(buyId).classList.toggle("disabled", !PURCHASES_ENABLED || state.coins < PRICE[k]);
   }
 }
 function buyInShop(kind) {
   const price = PRICE[kind];
-  if (state.coins < price) {
+  if (!PURCHASES_ENABLED || state.coins < price) {
     const btn = document.getElementById("buy" + kind[0].toUpperCase() + kind.slice(1));
     btn.classList.remove("shake"); void btn.offsetWidth; btn.classList.add("shake");
     return;
