@@ -99,22 +99,26 @@ GitHub リポジトリ名を `Water-Puzzle` → `PotionPop` → `PuruPop` と変
 
 | 機能 | 状態 |
 | --- | --- |
-| **リワード広告** | 配線済み。ネイティブビルドで AdMob を設定すれば即有効（下記） |
+| **リワード広告** | 配線済み。Poki（ポータル）／AdMob（ネイティブ）を設定1行で切替（下記） |
 | **コイン購入** | **準備中（Coming soon 表示）**。コイン獲得は動作、消費のみ停止中 |
 
-### リワード広告（AdMob）
+### リワード広告
 
-⚠️ **AdMob はネイティブアプリ（iOS / Android）専用**で、ブラウザで開く Web ページには広告を配信できません。Web 版でリワード広告を出したい場合は Google Ad Manager が該当製品になります。
+配信先によって使える広告プロバイダが変わり、**両立はできません**。`index.html` の `window.PURUPOP_CONFIG.ads.provider` でどちらか一方を選びます。
 
-そのためゲーム側は広告ネットワークを直接呼ばず、`ads.js` の `PuruPopAds.showRewarded(kind)` 経由で「報酬を得たか否か」だけを受け取る作りにしてあります。プロバイダ未設定なら従来どおり内蔵のシミュレーション広告にフォールバックするので、Web 版でも報酬フローはそのまま遊べます。
+| 配信先 | provider | 備考 |
+| --- | --- | --- |
+| Poki 等のゲームポータル | `"poki"` | ポータルが広告を売ってレベシェアする方式。**規約上、ゲーム内に third-party 広告（AdMob 等）を入れることは禁止**なので AdMob とは併用不可 |
+| ネイティブアプリ（iOS / Android） | `"admob"` | **AdMob はブラウザページには広告を配信できません**。Capacitor 等でネイティブ化した場合のみ有効 |
+| 上記以外（素の Web 版） | `""` | 内蔵のシミュレーション広告にフォールバック。報酬フローはそのまま遊べます |
 
-AdMob を有効化する手順:
+ゲーム側は広告ネットワークを直接呼ばず、`ads.js` の `PuruPopAds.showRewarded(kind)` 経由で「報酬を得たか否か」だけを受け取る作りなので、プロバイダの差し替えは設定1行で済みます。広告再生中はマスター音量を自動でミュートします（ポータル/広告SDKの要件）。
 
-1. Capacitor 等でネイティブ化し、`@capacitor-community/admob` を導入する。
-2. AdMob 管理画面でリワード広告ユニットを作成し、ユニットIDを取得する。
-3. `index.html` の `window.PURUPOP_CONFIG.ads` に `provider: "admob"` と各ユニットIDを設定する。動作確認だけしたい場合は `testMode: true` で Google のテスト広告が出ます。
+**Poki の場合:** `provider: "poki"` にすれば SDK を自動ロードし、`init` → `gameLoadingFinished` → 盤面開始時に `gameplayStart` → クリア時に `gameplayStop` → レベル間に `commercialBreak`（インタースティシャル）→ リワードは `rewardedBreak` を呼びます。`gameplayStart` / `gameplayStop` は Poki の審査要件です。`testMode: true` で SDK のデバッグモードになります。ゲーム固有の SDK URL を指定された場合は `pokiSdkUrl` に設定してください。
 
-AdMob アカウントの作成とユニットID発行はご自身で行う必要があります（Claude からは発行できません）。
+**AdMob の場合:** ネイティブ化して `@capacitor-community/admob` を導入し、AdMob 管理画面で作成したリワード広告ユニットIDを `rewardedUnitIds` に設定します。`testMode: true` で Google のテスト広告が出ます。
+
+Poki の審査通過・AdMob アカウント作成とユニットID発行はご自身で行う必要があります（Claude からは発行できません）。
 
 ### コイン購入を有効化するとき
 
@@ -142,7 +146,7 @@ AdMob アカウントの作成とユニットID発行はご自身で行う必要
 | `style.css` | UI スタイル・星空背景・アニメーション |
 | `game.js` | ゲームロジック＋Canvas ボトルレンダラー（生成・注ぎ判定・BFSソルバー・傾き注ぎ・気泡・パワーアップ経済・リワード広告・コイン・紙吹雪・効果音） |
 | `analytics.js` | GA4 / Sentry の任意連携（未設定なら無害・無通信） |
-| `ads.js` | リワード広告アダプタ（AdMob／未設定ならシミュレーションへフォールバック） |
+| `ads.js` | リワード広告アダプタ（Poki / AdMob／未設定ならシミュレーションへフォールバック） |
 | `terms.html` / `privacy.html` / `tokushoho.html` | 利用規約・プライバシーポリシー・特定商取引法に基づく表記（要・実情報への差し替え） |
 
 ## ライセンス

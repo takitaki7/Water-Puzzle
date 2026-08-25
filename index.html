@@ -43,22 +43,32 @@
       gaId: "",       // e.g. "G-XXXXXXXXXX" from Google Analytics
       sentryDsn: "",  // e.g. "https://xxxx@xxxx.ingest.sentry.io/xxxx" from Sentry
 
-      // Rewarded ads. NOTE: AdMob only serves native (iOS/Android)
-      // builds — in a browser this stays inactive and the game falls
-      // back to its built-in simulated ad. See ads.js and the README.
+      // Rewarded ads. Pick ONE provider — they are mutually exclusive:
+      //   "poki"  → web portal build. Poki sells the ads and pays a
+      //             revenue share; their terms forbid a third-party ad
+      //             network in the game, so do NOT also set AdMob.
+      //   "admob" → native (iOS/Android) build only. AdMob cannot serve
+      //             a page opened in a browser.
+      //   ""      → no network; the built-in simulated ad is used.
+      // See ads.js and the README.
       ads: {
-        provider: "",     // "admob" once wrapped natively; "" = simulated
-        testMode: false,  // true → Google's public test ad unit
+        provider: "",     // "poki" | "admob" | ""
+        testMode: false,  // Poki debug mode / Google's public test unit
+
+        // AdMob only:
         rewardedUnitIds: {
           undo: "",       // e.g. "ca-app-pub-XXXXXXXX/XXXXXXXX"
           hint: "",
           add: "",
         },
+
+        // Poki only: override if Poki gives you a game-specific SDK URL.
+        pokiSdkUrl: "",
       },
     };
   </script>
   <script src="analytics.js?v=1" defer></script>
-  <script src="ads.js?v=1"></script>
+  <script src="ads.js?v=2"></script>
 </head>
 <body>
   <div class="sky" aria-hidden="true">
@@ -206,6 +216,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=22"></script>
+  <script src="game.js?v=23"></script>
 </body>
 </html>

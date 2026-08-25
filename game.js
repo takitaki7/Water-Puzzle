@@ -1009,7 +1009,15 @@ function buyInShop(kind) {
 /* ============================================================
    Levels
    ============================================================ */
-function newLevel(advance) { if (advance) state.level++; loadLevel(state.level); }
+// Between levels is the one place an interstitial doesn't interrupt
+// anything — the board is already cleared and the next one hasn't been
+// dealt yet. Resolves immediately when no portal SDK is active.
+function newLevel(advance) {
+  if (advance) state.level++;
+  const ads = window.PuruPopAds;
+  if (advance && ads) ads.commercialBreak().then(() => loadLevel(state.level));
+  else loadLevel(state.level);
+}
 function showLevelLoading(on) {
   const el = document.getElementById("levelLoading");
   if (el) el.classList.toggle("hidden", !on);
@@ -1030,6 +1038,7 @@ function loadLevel(level) {
     pour = null; dyn = []; syncDyn();
     hideWin(); updateHud(); popInHud();
     showLevelLoading(false);
+    if (window.PuruPopAds) window.PuruPopAds.gameplayStart();
   }));
 }
 
@@ -1094,6 +1103,7 @@ function starCount() {
 }
 function onWin() {
   state.won = true; state.selected = null;
+  if (window.PuruPopAds) window.PuruPopAds.gameplayStop();
   const stars = starCount();
   const reward = 40 + stars * 30;
   state.coins += reward; saveCoins();
@@ -1185,6 +1195,16 @@ function audioResume() {
   initAudio();
   if (AC && AC.state === "suspended") AC.resume();
   if (musicOn) startBgm();
+}
+
+// Ad networks and game portals require the game to fall silent while an
+// ad plays. Ducking the master bus mutes SFX and music together without
+// disturbing the player's own sound/music preferences, so whatever they
+// had on comes back by itself when the break ends.
+function setAdMuted(muted) {
+  if (!AC || !master) return;
+  master.gain.cancelScheduledValues(AC.currentTime);
+  master.gain.setTargetAtTime(muted ? 0.0001 : 0.9, AC.currentTime, 0.05);
 }
 
 /* ---- SFX voices ---- */
@@ -1353,6 +1373,10 @@ document.addEventListener("keydown", (e) => {
 window.addEventListener("resize", resize);
 window.addEventListener("load", resize);
 if (window.ResizeObserver) new ResizeObserver(resize).observe(boardEl);
+
+// ads.js loads before this file and must be able to silence the game
+// during an ad break without reaching into its internals.
+window.PuruPopSetAdMuted = setAdMuted;
 
 window.PuruPop = {
   state, layout: () => LAYOUT, click: onTubeClick, pouring: () => !!pour,

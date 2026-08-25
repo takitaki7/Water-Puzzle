@@ -68,15 +68,18 @@
       <tr><td>Google Analytics</td><td>Anonymized usage stats (pages viewed, session length)</td><td><span class="status pending">Off unless configured</span></td></tr>
       <tr><td>Sentry (error monitoring)</td><td>Technical error reports (no gameplay data)</td><td><span class="status pending">Off unless configured</span></td></tr>
       <tr><td>Google AdMob</td><td>Advertising ID, IP address, ad interactions</td><td><span class="status pending">Native app builds only</span></td></tr>
+      <tr><td>Game portal SDK (e.g. Poki)</td><td>Device and usage data, per that portal's policy</td><td><span class="status pending">Portal builds only</span></td></tr>
     </table>
     <p style="margin-top:10px">Analytics and error monitoring are wired into the Game's code but ship <strong>inactive by default</strong> — see <code>analytics.js</code>. They only start making network requests once the site operator fills in a real Measurement ID / DSN. If enabled, this section will be updated to reflect what's actually collected before it goes live.</p>
 
     <h2>Advertising</h2>
     <p>The Game offers optional rewarded video ads: you may choose to watch a short video to earn a power-up. Watching is always voluntary — you can decline and keep playing.</p>
     <ul>
-      <li><strong>In the browser version</strong>, the rewarded-ad flow is simulated entirely on your device. No ad network is contacted and no advertising data is collected.</li>
+      <li><strong>On this site</strong>, the rewarded-ad flow is simulated entirely on your device. No ad network is contacted and no advertising data is collected.</li>
+      <li><strong>On a game portal</strong> (such as Poki), the portal serves the ads through its own SDK and acts as the advertising provider. It may collect device and usage data to deliver and measure those ads, governed by that portal's own privacy policy, which is available on the site where you are playing.</li>
       <li><strong>In native app builds</strong>, ads are served by <strong>Google AdMob</strong>. AdMob may collect device identifiers (such as your advertising ID), IP address, and general ad-interaction data to deliver and measure ads. This data is handled under <a class="back" href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">Google's Privacy &amp; Terms</a>.</li>
     </ul>
+    <p>Only one advertising provider is ever active in a given build of the Game.</p>
     <p>Where required by law, you will be asked for consent before personalized ads are shown, and you may choose non-personalized ads instead. You can reset or delete your advertising ID at any time through your device's settings.</p>
 
     <h2>Purchases</h2>
